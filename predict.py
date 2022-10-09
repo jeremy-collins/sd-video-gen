@@ -3,10 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import math
 import numpy as np
+from transformer import Transformer
 
 def predict(model, input_sequence, max_length=15, SOS_token=2, EOS_token=3):
     model.eval()
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     y_input = torch.tensor([[SOS_token]], dtype=torch.long, device=device)
 
     num_tokens = len(input_sequence[0])
@@ -29,20 +30,22 @@ def predict(model, input_sequence, max_length=15, SOS_token=2, EOS_token=3):
 
     return y_input.view(-1).tolist()
   
-  
-# Here we test some examples to observe how the model predicts
-examples = [
-    torch.tensor([[2, 0, 0, 0, 0, 0, 0, 0, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 1, 1, 1, 1, 1, 1, 1, 1, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-    torch.tensor([[2, 0, 1, 3]], dtype=torch.long, device=device)
-]
+if __name__ == "__main__":  
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = Transformer()
+    # Here we test some examples to observe how the model predicts
+    examples = [
+        torch.tensor([[2, 0, 0, 0, 0, 0, 0, 0, 0, 3]], dtype=torch.long, device=device),
+        torch.tensor([[2, 1, 1, 1, 1, 1, 1, 1, 1, 3]], dtype=torch.long, device=device),
+        torch.tensor([[2, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
+        torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 3]], dtype=torch.long, device=device),
+        torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
+        torch.tensor([[2, 0, 1, 3]], dtype=torch.long, device=device)
+    ]
 
-for idx, example in enumerate(examples):
-    result = predict(model, example)
-    print(f"Example {idx}")
-    print(f"Input: {example.view(-1).tolist()[1:-1]}")
-    print(f"Continuation: {result[1:-1]}")
-    print()
+    for idx, example in enumerate(examples):
+        result = predict(model, example)
+        print(f"Example {idx}")
+        print(f"Input: {example.view(-1).tolist()[1:-1]}")
+        print(f"Continuation: {result[1:-1]}")
+        print()

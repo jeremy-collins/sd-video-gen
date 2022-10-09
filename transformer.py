@@ -21,12 +21,15 @@ class Transformer(nn.Module):
         # INFO
         self.model_type = "Transformer"
         self.dim_model = dim_model
+        self.height = 64
+        self.width = 64
 
         # LAYERS
         self.positional_encoder = PositionalEncoding(
             dim_model=dim_model, dropout_p=dropout_p, max_len=5000
         )
-        self.embedding = nn.Embedding(num_tokens, dim_model)
+        # self.embedding = nn.Embedding(num_tokens, dim_model)
+        self.embedding = nn.Linear(self.height * self.width * 4, dim_model)
         self.transformer = nn.Transformer(
             d_model=dim_model,
             nhead=num_heads,
@@ -58,7 +61,7 @@ class Transformer(nn.Module):
         return out
       
     def get_tgt_mask(self, size) -> torch.tensor:
-        # Generates a squeare matrix where the each row allows one word more to be seen
+        # Generates a square matrix where the each row allows one word more to be seen
         mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
         mask = mask.float()
         mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf

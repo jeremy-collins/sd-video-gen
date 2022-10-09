@@ -3,11 +3,12 @@ import torch.nn as nn
 import torch.optim as optim
 import math
 import numpy as np
+from transformer import Transformer
 
 def train_loop(model, opt, loss_fn, dataloader):  
     model.train()
     total_loss = 0
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     for batch in dataloader:
         X, y = batch[:, 0], batch[:, 1]
         X, y = torch.tensor(X).to(device), torch.tensor(y).to(device)
@@ -40,7 +41,7 @@ def train_loop(model, opt, loss_fn, dataloader):
 def validation_loop(model, loss_fn, dataloader):  
     model.eval()
     total_loss = 0
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
         for batch in dataloader:
             X, y = batch[:, 0], batch[:, 1]
@@ -84,5 +85,9 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
         
     return train_loss_list, validation_loss_list
     
-if __name__ == "__main__":    
+if __name__ == "__main__":
+    model = Transformer()
+    opt = optim.Adam(model.parameters(), lr=0.0001)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=0) # TODO: change this to mse + condition + gradient difference
+        
     train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_dataloader, val_dataloader, 10)
