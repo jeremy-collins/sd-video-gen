@@ -84,10 +84,57 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
         print()
         
     return train_loss_list, validation_loss_list
+
+def custom_collate(batch):
+    filtered_batch = []
+    for video, _, label in batch:
+        filtered_batch.append((video, label))
+    return torch.utils.data.dataloader.default_collate(filtered_batch)
+
     
 if __name__ == "__main__":
     model = Transformer()
     opt = optim.Adam(model.parameters(), lr=0.0001)
     loss_fn = nn.CrossEntropyLoss(ignore_index=0) # TODO: change this to mse + condition + gradient difference
         
-    train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_dataloader, val_dataloader, 10)
+    ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
+    ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
+    frames_per_clip = 5
+    step_between_clips = 1
+    batch_size = 4
+
+    tfs = transforms.Compose([
+            # TODO: this should be done by a video-level transfrom when PyTorch provides transforms.ToTensor() for video
+            # scale in [0, 1] of type float
+            transforms.Lambda(lambda x: x / 255.),
+            # reshape into (T, C, H, W) for easier convolutions
+            transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
+            # rescale to the most common size
+            transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+    ])
+
+    train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                       step_between_clips=step_between_clips, train=True, transform=tfs)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                            collate_fn=custom_collate)
+    # create test loader (allowing batches and other extras)
+    test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                        step_between_clips=step_between_clips, train=False, transform=tfs)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                            collate_fn=custom_collate)
+
+    # print(train_loader)
+    print("TRAIN LOADER")
+    for i, j in train_loader:
+        print(i.size())
+        print(i)
+        break
+
+    print("TEST LOADER")
+    # print(test_loader)
+    for i, j in test_loader:
+        print(i.size())
+        print(i)
+        break
+
+    # train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_dataloader, val_dataloader, 10)
