@@ -4,6 +4,9 @@ import torch.optim as optim
 import math
 import numpy as np
 from transformer import Transformer
+import torchvision.transforms as transforms
+from torchvision.datasets import UCF101
+import argparse
 
 def train_loop(model, opt, loss_fn, dataloader):  
     model.train()
@@ -93,35 +96,43 @@ def custom_collate(batch):
 
     
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, required=True)
+    args = parser.parse_args()
+    
     model = Transformer()
     opt = optim.Adam(model.parameters(), lr=0.0001)
     loss_fn = nn.CrossEntropyLoss(ignore_index=0) # TODO: change this to mse + condition + gradient difference
+    
+    if args.dataset == 'ucf101':    
+        ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
+        ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
+        frames_per_clip = 5
+        step_between_clips = 1
+        batch_size = 4
+
+        tfs = transforms.Compose([
+                # TODO: this should be done by a video-level transfrom when PyTorch provides transforms.ToTensor() for video
+                # scale in [0, 1] of type float
+                transforms.Lambda(lambda x: x / 255.),
+                # reshape into (T, C, H, W) for easier convolutions
+                transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
+                # rescale to the most common size
+                transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+        ])
+
+        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                        step_between_clips=step_between_clips, train=True, transform=tfs)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                                collate_fn=custom_collate)
+        # create test loader (allowing batches and other extras)
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                            step_between_clips=step_between_clips, train=False, transform=tfs)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                                collate_fn=custom_collate)
         
-    ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
-    ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
-    frames_per_clip = 5
-    step_between_clips = 1
-    batch_size = 4
-
-    tfs = transforms.Compose([
-            # TODO: this should be done by a video-level transfrom when PyTorch provides transforms.ToTensor() for video
-            # scale in [0, 1] of type float
-            transforms.Lambda(lambda x: x / 255.),
-            # reshape into (T, C, H, W) for easier convolutions
-            transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
-            # rescale to the most common size
-            transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
-    ])
-
-    train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                       step_between_clips=step_between_clips, train=True, transform=tfs)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                                            collate_fn=custom_collate)
-    # create test loader (allowing batches and other extras)
-    test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                        step_between_clips=step_between_clips, train=False, transform=tfs)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
-                                            collate_fn=custom_collate)
+    elif args.dataset == 'ball':
+        pass
 
     # print(train_loader)
     print("TRAIN LOADER")
