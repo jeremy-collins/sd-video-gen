@@ -1,3 +1,4 @@
+from sd_utils import SDUtils
 import torch
 import torch.utils.data as data
 import torch.nn as nn
@@ -14,9 +15,10 @@ import os
 class BouncingBall(data.Dataset):
     def __init__(self, num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='raw', shuffle=True):
         self.stage = stage
-        self.dir = dir
+        self.dir = os.path.join(dir, stage)
         self.num_frames = num_frames
         self.fps = fps
+        self.sd_utils = SDUtils()
         self.dataset = self.get_data(shuffle=shuffle)
 
     def __getitem__(self, index):
@@ -28,12 +30,16 @@ class BouncingBall(data.Dataset):
         for frame_name in frame_names:
             frame = cv2.imread(frame_name)
             # frame = self.transform(frame) # TODO: add transforms
-            frame = torch.from_numpy(frame)
-            frame = frame.permute(2, 0, 1)
+            frame = self.sd_utils.encode_img(frame)
+            frame = frame.squeeze(0)
+            # frame = torch.from_numpy(frame)
+            # frame = frame.permute(2, 0, 1)
             frame = frame.float()/255.0
             
             frames.append(frame)
-
+        
+        frames = torch.stack(frames, dim=0)
+            
         return frames
 
     def __len__(self):
@@ -48,7 +54,6 @@ class BouncingBall(data.Dataset):
             for file in files:
                 # saving (time, path)
                 parent = dir.split('/')[-1]
-
                 # (parent+index, name)
                 if file.endswith('.png'):
                     img_names.append((float(parent+file[-7:-4]), os.path.join(dir, file)))
@@ -67,19 +72,30 @@ class BouncingBall(data.Dataset):
                     continue
                 
             # each element is a list of frame names with length num_frames and skipping frames according to fps    
-            self.dataset.append((frame_names))
+            self.dataset.append(frame_names)
 
         if shuffle:
             np.random.shuffle(self.dataset)
         else:
             self.dataset = np.array(self.dataset)
-
+        
+        # if self.stage == 'train':
+        #     return self.dataset[:int(len(self.dataset)*0.8)]
+            
+        # if self.stage == 'test':
+        #     return self.dataset[int(len(self.dataset)*0.8):]
+        
+        # if self.stage == 'raw':
+        #     return self.dataset
+        
         return self.dataset
+        
 
 if __name__ == '__main__':
-    dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='raw', shuffle=True)
+    dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
     
     for i in range(10):
+        print('dir: ', dataset.dir)
         print('clip ', i)
         print("clips in the dataset: ", len(dataset.dataset))
         print('clip length: ', len(dataset[0]))

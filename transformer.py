@@ -9,20 +9,20 @@ class Transformer(nn.Module):
     # Constructor
     def __init__(
         self,
-        num_tokens,
-        dim_model,
-        num_heads,
-        num_encoder_layers,
-        num_decoder_layers,
-        dropout_p,
+        num_tokens=0,
+        dim_model=256,
+        num_heads=8,
+        num_encoder_layers=6,
+        num_decoder_layers=6,
+        dropout_p=0.1,
     ):
         super().__init__()
 
         # INFO
         self.model_type = "Transformer"
         self.dim_model = dim_model
-        self.height = 64
-        self.width = 64
+        self.height = 8
+        self.width = 8
 
         # LAYERS
         self.positional_encoder = PositionalEncoding(
@@ -37,12 +37,15 @@ class Transformer(nn.Module):
             num_decoder_layers=num_decoder_layers,
             dropout=dropout_p,
         )
-        self.out = nn.Linear(dim_model, num_tokens)
+        self.out = nn.Linear(dim_model, self.height * self.width * 4)
         
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         # Src size must be (batch_size, src sequence length)
         # Tgt size must be (batch_size, tgt sequence length)
-
+        bs, seq_len, _, _, _ = src.shape
+        src = src.reshape(bs, seq_len, self.height * self.width * 4)
+        tgt = tgt.reshape(bs, tgt.shape[1], self.height * self.width * 4)
+        
         # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
         src = self.embedding(src) * math.sqrt(self.dim_model)
         tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
@@ -53,19 +56,33 @@ class Transformer(nn.Module):
         # to obtain size (sequence length, batch_size, dim_model),
         src = src.permute(1,0,2)
         tgt = tgt.permute(1,0,2)
-
+        
         # Transformer blocks - Out size = (sequence length, batch_size, num_tokens)
         transformer_out = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
         out = self.out(transformer_out)
+        # out = transformer_out
         
         return out
       
     def get_tgt_mask(self, size) -> torch.tensor:
         # Generates a square matrix where the each row allows one word more to be seen
         mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
+        # mask = torch.zeros(size, size)
+        # mask[-1] = 1
+        # mask[]
         mask = mask.float()
         mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
         mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
+        
+        # mask = self.transformer.generate_square_subsequent_mask(1)
+        
+        
+        # EX for size=5:
+        # [[0.,   0.,   0.,   0.,   -inf.],
+        #  [0.,   0.,   0.,   0.,   0.],
+        #  [0.,   0.,   0.,   0.,   0.],
+        #  [0.,   0.,   0.,   0.,   0.],
+        #  [0.,   0.,   0.,   0.,   0.]]
         
         # EX for size=5:
         # [[0., -inf, -inf, -inf, -inf],

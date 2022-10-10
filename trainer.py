@@ -6,19 +6,37 @@ import numpy as np
 from transformer import Transformer
 import torchvision.transforms as transforms
 from torchvision.datasets import UCF101
+from bouncing_ball_loader import BouncingBall
 import argparse
+import os
 
-def train_loop(model, opt, loss_fn, dataloader):  
+def train_loop(model, opt, loss_fn, dataloader):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print('device: ', device)
+    model = model.to(device)
     model.train()
     total_loss = 0
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    for batch in dataloader:
-        X, y = batch[:, 0], batch[:, 1]
+    for i, batch in enumerate(dataloader):
+        print('batch', i)
+        if i >= 100:
+            break
+        # X, y = batch[:, 0], batch[:, 1]
+        
+        # X = batch[:, :-1]
+        # y = batch[:,-1].unsqueeze(1)
+        
+        X = batch
+        y = batch
+        
         X, y = torch.tensor(X).to(device), torch.tensor(y).to(device)
-
-        # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
-        y_input = y[:,:-1]
-        y_expected = y[:,1:]
+        
+        y_input = y
+        y_expected = y
+        
+        y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
+        y_expected = y_expected.permute(1, 0, 2)
+        
+        
         
         # Get mask to mask out the next words
         sequence_length = y_input.size(1)
@@ -26,9 +44,11 @@ def train_loop(model, opt, loss_fn, dataloader):
 
         # Standard training except we pass in y_input and tgt_mask
         pred = model(X, y_input, tgt_mask)
+        # pred = None
 
         # Permute pred to have batch size first again
-        pred = pred.permute(1, 2, 0)      
+        # pred = pred.permute(1, 2, 0)
+        
         loss = loss_fn(pred, y_expected)
 
         opt.zero_grad()
@@ -37,8 +57,8 @@ def train_loop(model, opt, loss_fn, dataloader):
     
         total_loss += loss.detach().item()
         
-    return total_loss / len(dataloader)
-
+    # return total_loss / len(dataloader)
+    return total_loss / 100.0
 
 
 def validation_loop(model, loss_fn, dataloader):  
@@ -46,13 +66,24 @@ def validation_loop(model, loss_fn, dataloader):
     total_loss = 0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
-        for batch in dataloader:
-            X, y = batch[:, 0], batch[:, 1]
-            X, y = torch.tensor(X, dtype=torch.long, device=device), torch.tensor(y, dtype=torch.long, device=device)
+        for j, batch in enumerate(dataloader):
+            print('batch', j)
+            if j >= 100:
+                break
+        
+            # X, y = batch[:, 0], batch[:, 1]
+            X = batch[:, :-1]
+            y = batch
+            
+            # X, y = torch.tensor(X, dtype=torch.long, device=device), torch.tensor(y, dtype=torch.long, device=device)
+            X, y = torch.tensor(X, dtype=torch.float32, device=device), torch.tensor(y, dtype=torch.float32, device=device)
 
             # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
             y_expected = y[:,1:]
+            
+            y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
+            y_expected = y_expected.permute(1, 0, 2)
             
             # Get mask to mask out the next words
             sequence_length = y_input.size(1)
@@ -62,11 +93,12 @@ def validation_loop(model, loss_fn, dataloader):
             pred = model(X, y_input, tgt_mask)
 
             # Permute pred to have batch size first again
-            pred = pred.permute(1, 2, 0)      
+            pred = pred.permute(1, 0, 2)
             loss = loss_fn(pred, y_expected)
             total_loss += loss.detach().item()
         
-    return total_loss / len(dataloader)
+    # return total_loss / len(dataloader)
+    return total_loss / 100.0
 
 def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs): 
     # Used for plotting later on
@@ -85,6 +117,13 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
         print(f"Training loss: {train_loss:.4f}")
         print(f"Validation loss: {validation_loss:.4f}")
         print()
+    
+    # counting number of files in ./checkpoints
+    index = len(os.listdir('./checkpoints'))    
+    
+    # save model
+    print("saving model")
+    torch.save(model.state_dict(), './checkpoints/model' + '_' + str(index) + '.pt')
         
     return train_loss_list, validation_loss_list
 
@@ -100,16 +139,18 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, required=True)
     args = parser.parse_args()
     
-    model = Transformer()
+    model = Transformer(num_tokens=0, dim_model=256, num_heads=8, num_encoder_layers=6, num_decoder_layers=6, dropout_p=0.1)
     opt = optim.Adam(model.parameters(), lr=0.0001)
-    loss_fn = nn.CrossEntropyLoss(ignore_index=0) # TODO: change this to mse + condition + gradient difference
+    loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
+    
+    frames_per_clip = 5
+    step_between_clips = 1
+    batch_size = 4
     
     if args.dataset == 'ucf101':    
         ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
         ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
-        frames_per_clip = 5
-        step_between_clips = 1
-        batch_size = 4
+        
 
         tfs = transforms.Compose([
                 # TODO: this should be done by a video-level transfrom when PyTorch provides transforms.ToTensor() for video
@@ -132,20 +173,26 @@ if __name__ == "__main__":
                                                 collate_fn=custom_collate)
         
     elif args.dataset == 'ball':
-        pass
+        train_dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        
+        test_dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+        
 
-    # print(train_loader)
-    print("TRAIN LOADER")
-    for i, j in train_loader:
-        print(i.size())
-        print(i)
-        break
+    # # print(train_loader)
+    # print("TRAIN LOADER")
+    # for i in train_loader:
+    #     print(len(i))
+    #     print(i.size())
+    #     print(i)
+    #     break
 
-    print("TEST LOADER")
-    # print(test_loader)
-    for i, j in test_loader:
-        print(i.size())
-        print(i)
-        break
+    # print("TEST LOADER")
+    # # print(test_loader)
+    # for i in test_loader:
+    #     print(i.size())
+    #     print(i)
+    #     break
 
-    # train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_dataloader, val_dataloader, 10)
+    train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, test_loader, 1)
