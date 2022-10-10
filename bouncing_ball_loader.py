@@ -13,13 +13,13 @@ import cv2
 import os
 
 class BouncingBall(data.Dataset):
-    def __init__(self, num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='raw', shuffle=True):
+    def __init__(self, num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='raw', shuffle=True):
         self.stage = stage
         self.dir = os.path.join(dir, stage)
         self.num_frames = num_frames
-        self.fps = fps
+        self.stride = stride
         self.sd_utils = SDUtils()
-        self.dataset = self.get_data(shuffle=shuffle)
+        self.indices, self.dataset = self.get_data(shuffle=shuffle)
 
     def __getitem__(self, index):
         # obtaining file paths
@@ -31,23 +31,31 @@ class BouncingBall(data.Dataset):
             frame = cv2.imread(frame_name)
             # frame = self.transform(frame) # TODO: add transforms
             frame = self.sd_utils.encode_img(frame)
+           
+            # check decoding
+            # reconstruction = self.sd_utils.decode_img_latents(frame)
+            # reconstruction = np.array(reconstruction[0])
+            # cv2.imshow('reconstruction', reconstruction)
+            # cv2.waitKey(0)
+            
             frame = frame.squeeze(0)
             # frame = torch.from_numpy(frame)
             # frame = frame.permute(2, 0, 1)
-            frame = frame.float()/255.0
+            # frame = frame.float()/255.0
             
             frames.append(frame)
         
         frames = torch.stack(frames, dim=0)
             
-        return frames
+        return self.indices[index], frames
 
     def __len__(self):
         return len(self.dataset)
 
     def get_data(self, shuffle):
         img_names = []
-        self.dataset = []
+        dataset = []
+        indices = []
 
         # crawling the directory
         for dir, _, files in os.walk(self.dir):
@@ -56,43 +64,40 @@ class BouncingBall(data.Dataset):
                 parent = dir.split('/')[-1]
                 # (parent+index, name)
                 if file.endswith('.png'):
-                    img_names.append((float(parent+file[-7:-4]), os.path.join(dir, file)))
+                    img_names.append((int(parent+file[-7:-4]), os.path.join(dir, file)))
 
         # sorting the names numerically. first 4 digits are folder and last 3 are file
         img_names = sorted(img_names, key=lambda x: x[0])
 
-        # self.indices = [x[0] for x in img_names]
+        # indices = [x[0] for x in img_names]
 
         for i in range(0, len(img_names), self.num_frames):
+            index_list = []
             frame_names = []
-            for j in range(0, self.num_frames, 30 // self.fps):
+            for j in range(0, self.num_frames, self.stride):
                 if i+j < len(img_names):
+                    index_list.append(img_names[i+j][0])
                     frame_names.append(img_names[i+j][1])
                 else:
-                    continue
+                    break
+            
+            # list of lists of frame indices 
+            indices.append(index_list) 
                 
-            # each element is a list of frame names with length num_frames and skipping frames according to fps    
-            self.dataset.append(frame_names)
+            # each element is a list of frame names with length num_frames and skipping frames according to stride    
+            dataset.append(frame_names)
+            
 
         if shuffle:
-            np.random.shuffle(self.dataset)
+            np.random.shuffle(dataset)
         else:
-            self.dataset = np.array(self.dataset)
+            dataset = np.array(dataset)
         
-        # if self.stage == 'train':
-        #     return self.dataset[:int(len(self.dataset)*0.8)]
-            
-        # if self.stage == 'test':
-        #     return self.dataset[int(len(self.dataset)*0.8):]
-        
-        # if self.stage == 'raw':
-        #     return self.dataset
-        
-        return self.dataset
+        return indices, dataset
         
 
 if __name__ == '__main__':
-    dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
+    dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
     
     for i in range(10):
         print('dir: ', dataset.dir)

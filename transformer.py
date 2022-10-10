@@ -40,6 +40,7 @@ class Transformer(nn.Module):
         self.out = nn.Linear(dim_model, self.height * self.width * 4)
         
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
+        
         # Src size must be (batch_size, src sequence length)
         # Tgt size must be (batch_size, tgt sequence length)
         bs, seq_len, _, _, _ = src.shape

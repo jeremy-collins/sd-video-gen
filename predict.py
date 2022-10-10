@@ -8,6 +8,8 @@ from bouncing_ball_loader import BouncingBall
 from sd_utils import SDUtils
 import PIL
 import cv2
+import os
+import argparse
 
 def predict(model, input_sequence, max_length=5, SOS_token=2, EOS_token=3):
     model.eval()
@@ -41,22 +43,27 @@ def predict(model, input_sequence, max_length=5, SOS_token=2, EOS_token=3):
     
   
 if __name__ == "__main__":  
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--index', type=int, required=True)
+    args = parser.parse_args()
+    
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Transformer()
-    model.load_state_dict(torch.load('./checkpoints/model_0.pt'))
+    model.load_state_dict(torch.load('./checkpoints/model_' + str(args.index) + '.pt'))
     model.eval()
     model = model.to(device)
     
-    test_dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+    test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
     
     with torch.no_grad():
-        for i, batch in enumerate(test_loader):
+        for index_list, batch in test_loader:
             X = batch[:, :-1]
             y = batch
             
-            X, y = torch.tensor(X, dtype=torch.float32, device=device), torch.tensor(y, dtype=torch.float32, device=device)
+            X = torch.tensor(X, dtype=torch.float32, device=device)
+            y = torch.tensor(y, dtype=torch.float32, device=device)
 
             # # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
@@ -70,15 +77,30 @@ if __name__ == "__main__":
             tgt_mask = model.get_tgt_mask(sequence_length).to(device)
             
             result = predict(model, X)
-            result = np.array(result)
+            result = torch.tensor(result, dtype=torch.float32, device=device)
+
             pred_latents = result.reshape((1, 4, 8, 8))
-            pred_latents = torch.tensor(pred_latents, dtype=torch.float32, device=device)
+            # pred_latents = result.reshape((1, 8, 8, 4))
+            # pred_latents = pred_latents.permute(0, 3, 1, 2)
             pred_img = sd_utils.decode_img_latents(pred_latents)
             
-            # pred_img = pred_img[0].cpu().numpy()
+            # counting number of files in ./checkpoints
+            folder_index = len(os.listdir('./images'))   
+            os.mkdir('./images/' + str(folder_index))
+            img_path = os.path.join('./images', str(folder_index), str(index_list[-1].item()) + '_pred.png')
+
+            pred_img[0].save(img_path)
             
-            # cv2.imshow('pred', pred_img)
-            pred_img[0].show()
+            # pred_img[0].show()
+            
+            for idx, input in enumerate(X.squeeze(0)):
+                print('X', X.shape)
+                input_latents = input.reshape((1, 4, 8, 8))
+                # input_latents = input.reshape((1, 8, 8, 4))
+                # input_latents = input_latents.permute(0, 3, 1, 2)
+                input_img = sd_utils.decode_img_latents(input_latents)
+                img_path = os.path.join('./images', str(folder_index), str(index_list[idx].item()) + '_gt.png')
+                input_img[0].save(img_path)
             
             # print('result', result)
             # print('result', result.shape)
@@ -91,21 +113,3 @@ if __name__ == "__main__":
             # # Permute pred to have batch size first again
             # # (batch_size, sequence_length, num_latents)
             # pred = pred.permute(1, 0, 2)
-        
-        
-        # # Here we test some examples to observe how the model predicts
-        # examples = [
-        #     torch.tensor([[2, 0, 0, 0, 0, 0, 0, 0, 0, 3]], dtype=torch.long, device=device),
-        #     torch.tensor([[2, 1, 1, 1, 1, 1, 1, 1, 1, 3]], dtype=torch.long, device=device),
-        #     torch.tensor([[2, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-        #     torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 3]], dtype=torch.long, device=device),
-        #     torch.tensor([[2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 3]], dtype=torch.long, device=device),
-        #     torch.tensor([[2, 0, 1, 3]], dtype=torch.long, device=device)
-        # ]
-
-        # for idx, example in enumerate(examples):
-        #     result = predict(model, example)
-        #     print(f"Example {idx}")
-        #     print(f"Input: {example.view(-1).tolist()[1:-1]}")
-        #     print(f"Continuation: {result[1:-1]}")
-        #     print()

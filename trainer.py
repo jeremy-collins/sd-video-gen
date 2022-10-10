@@ -16,7 +16,7 @@ def train_loop(model, opt, loss_fn, dataloader):
     model = model.to(device)
     model.train()
     total_loss = 0
-    for i, batch in enumerate(dataloader):
+    for i, (index_list, batch) in enumerate(dataloader):
         print('batch', i)
         if i >= 100:
             break
@@ -35,8 +35,6 @@ def train_loop(model, opt, loss_fn, dataloader):
         
         y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
         y_expected = y_expected.permute(1, 0, 2)
-        
-        
         
         # Get mask to mask out the next words
         sequence_length = y_input.size(1)
@@ -66,7 +64,7 @@ def validation_loop(model, loss_fn, dataloader):
     total_loss = 0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
-        for j, batch in enumerate(dataloader):
+        for j, (index_list, batch) in enumerate(dataloader):
             print('batch', j)
             if j >= 100:
                 break
@@ -76,7 +74,7 @@ def validation_loop(model, loss_fn, dataloader):
             y = batch
             
             # X, y = torch.tensor(X, dtype=torch.long, device=device), torch.tensor(y, dtype=torch.long, device=device)
-            X, y = torch.tensor(X, dtype=torch.float32, device=device), torch.tensor(y, dtype=torch.float32, device=device)
+            X, y = torch.tensor(X, dtype=torch.float32, device=device), torch.tensor(y, dtype=torch.float32, device=device) # TODO: check if this is correct
 
             # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
             y_input = y[:,:-1]
@@ -97,8 +95,8 @@ def validation_loop(model, loss_fn, dataloader):
             loss = loss_fn(pred, y_expected)
             total_loss += loss.detach().item()
         
-    # return total_loss / len(dataloader)
-    return total_loss / 100.0
+    return total_loss / len(dataloader)
+    # return total_loss / 100.0
 
 def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs): 
     # Used for plotting later on
@@ -122,8 +120,8 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
     index = len(os.listdir('./checkpoints'))    
     
     # save model
-    print("saving model")
     torch.save(model.state_dict(), './checkpoints/model' + '_' + str(index) + '.pt')
+    print('model saved as model' + '_' + str(index) + '.pt')
         
     return train_loss_list, validation_loss_list
 
@@ -139,6 +137,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, required=True)
     args = parser.parse_args()
     
+    # torch.multiprocessing.set_start_method('spawn')
+    
     model = Transformer(num_tokens=0, dim_model=256, num_heads=8, num_encoder_layers=6, num_decoder_layers=6, dropout_p=0.1)
     opt = optim.Adam(model.parameters(), lr=0.0001)
     loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
@@ -153,7 +153,6 @@ if __name__ == "__main__":
         
 
         tfs = transforms.Compose([
-                # TODO: this should be done by a video-level transfrom when PyTorch provides transforms.ToTensor() for video
                 # scale in [0, 1] of type float
                 transforms.Lambda(lambda x: x / 255.),
                 # reshape into (T, C, H, W) for easier convolutions
@@ -173,10 +172,10 @@ if __name__ == "__main__":
                                                 collate_fn=custom_collate)
         
     elif args.dataset == 'ball':
-        train_dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
+        train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         
-        test_dataset = BouncingBall(num_frames=5, fps=30, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+        test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
         
 

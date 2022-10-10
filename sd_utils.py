@@ -15,7 +15,24 @@ from tqdm.auto import tqdm
 import os
 
 
-def load_models():
+
+# Stable Diffusion utils
+class SDUtils():
+  def __init__(self):
+    
+    # pipe, vae, tokenizer, text_encoder, unet, scheduler = load_models()
+    vae = self.load_models()
+    
+    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # self.pipe = pipe
+    self.vae = vae
+    # self.tokenizer = tokenizer
+    # self.text_encoder = text_encoder
+    # self.unet = unet
+    # self.scheduler = scheduler
+    
+    
+  def load_models(self):
     auth_token = os.environ['HF_TOKEN']
     # initializing entire pipeline for out of the box SD
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,24 +67,8 @@ def load_models():
     #     beta_start=0.00085, beta_end=0.012,
     #     beta_schedule='scaled_linear', num_train_timesteps=1000)
     
-    
     return vae
-    
-# Stable Diffusion utils
-class SDUtils():
-  def __init__(self):
-    
-    # pipe, vae, tokenizer, text_encoder, unet, scheduler = load_models()
-    vae = load_models()
-    
-    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # self.pipe = pipe
-    self.vae = vae
-    # self.tokenizer = tokenizer
-    # self.text_encoder = text_encoder
-    # self.unet = unet
-    # self.scheduler = scheduler
-    
+      
   def encode_text(self, prompt):
     # Tokenize a prompt or a list of prompts and get embeddings
     text_input = self.tokenizer(
