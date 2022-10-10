@@ -20,6 +20,10 @@ class BouncingBall(data.Dataset):
         self.stride = stride
         self.sd_utils = SDUtils()
         self.indices, self.dataset = self.get_data(shuffle=shuffle)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model = Transformer()       
+        self.SOS_token = torch.ones((1, model.dim_model), dtype=torch.float32, device=device) * 2
+        self.EOS_token = torch.ones((1, model.dim_model), dtype=torch.float32, device=device) * 3
 
     def __getitem__(self, index):
         # obtaining file paths
@@ -43,10 +47,17 @@ class BouncingBall(data.Dataset):
             # frame = frame.permute(2, 0, 1)
             # frame = frame.float()/255.0
             
+            # bs, seq_len, _, _, _ = frame.shape
+            frame = frame.flatten()
+                
             frames.append(frame)
         
         frames = torch.stack(frames, dim=0)
-            
+        
+        # concatenating SOS token, 
+        frames = torch.cat((self.SOS_token, frames), dim=0)
+                    
+        #  frames.shape: (seq_len + 1, dim_model)   
         return self.indices[index], frames
 
     def __len__(self):

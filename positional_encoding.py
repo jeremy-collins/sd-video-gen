@@ -15,7 +15,7 @@ class PositionalEncoding(nn.Module):
         
         # Encoding - From formula
         pos_encoding = torch.zeros(max_len, dim_model)
-        positions_list = torch.arange(0, max_len, dtype=torch.float).view(-1, 1) # 0, 1, 2, 3, 4, 5
+        positions_list = torch.arange(0, max_len, dtype=torch.float).view(-1, 1) # 0, 1, 2, 3, 4
         division_term = torch.exp(torch.arange(0, dim_model, 2).float() * (-math.log(10000.0)) / dim_model) # 1000^(2i/dim_model)
         
         # PE(pos, 2i) = sin(pos/1000^(2i/dim_model))
@@ -26,6 +26,8 @@ class PositionalEncoding(nn.Module):
         
         # Saving buffer (same as parameter without gradients needed)
         pos_encoding = pos_encoding.unsqueeze(0).transpose(0, 1)
+        # pos_encoding = pos_encoding.unsqueeze(0)
+        
         self.register_buffer("pos_encoding",pos_encoding)
         
     def forward(self, token_embedding: torch.tensor) -> torch.tensor:

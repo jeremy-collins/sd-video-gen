@@ -9,6 +9,9 @@ from torchvision.datasets import UCF101
 from bouncing_ball_loader import BouncingBall
 import argparse
 import os
+from tqdm import tqdm
+from sd_utils import SDUtils
+import cv2
 
 def train_loop(model, opt, loss_fn, dataloader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -16,10 +19,12 @@ def train_loop(model, opt, loss_fn, dataloader):
     model = model.to(device)
     model.train()
     total_loss = 0
-    for i, (index_list, batch) in enumerate(dataloader):
-        print('batch', i)
-        if i >= 100:
-            break
+    sd_utils = SDUtils()
+        
+    for i, (index_list, batch) in enumerate(tqdm(dataloader)):
+        # if i >= 99:
+        #     break
+        
         # X, y = batch[:, 0], batch[:, 1]
         
         # X = batch[:, :-1]
@@ -28,10 +33,15 @@ def train_loop(model, opt, loss_fn, dataloader):
         X = batch
         y = batch
         
-        X, y = torch.tensor(X).to(device), torch.tensor(y).to(device)
+        X = torch.tensor(X).to(device)
+        y = torch.tensor(y).to(device)
         
-        y_input = y
-        y_expected = y
+        # y_input = y
+        # y_expected = y
+        
+        # shift the tgt by one so we always predict the next embedding
+        y_input = y[:,:-1]
+        y_expected = y[:,1:]
         
         y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
         y_expected = y_expected.permute(1, 0, 2)
@@ -39,15 +49,25 @@ def train_loop(model, opt, loss_fn, dataloader):
         # Get mask to mask out the next words
         sequence_length = y_input.size(1)
         tgt_mask = model.get_tgt_mask(sequence_length).to(device)
+       
+        # X shape is (batch_size, src sequence length, input.shape)
+        # y_input shape is (batch_size, tgt sequence length, input.shape)
 
         # Standard training except we pass in y_input and tgt_mask
         pred = model(X, y_input, tgt_mask)
         # pred = None
-
+        
         # Permute pred to have batch size first again
         # pred = pred.permute(1, 2, 0)
         
-        loss = loss_fn(pred, y_expected)
+        # check decoding
+        # gt = y_expected[-1][-1].reshape((1, 4, 8, 8))
+        # gt_reconstruction = sd_utils.decode_img_latents(gt)
+        # gt_reconstruction = np.array(gt_reconstruction[0])
+        # cv2.imshow('gt_reconstruction', gt_reconstruction)
+        # cv2.waitKey(0)
+        
+        loss = loss_fn(pred[-1], y_expected[-1])
 
         opt.zero_grad()
         loss.backward()
@@ -55,30 +75,31 @@ def train_loop(model, opt, loss_fn, dataloader):
     
         total_loss += loss.detach().item()
         
-    # return total_loss / len(dataloader)
-    return total_loss / 100.0
-
+    return total_loss / len(dataloader)
+    # return total_loss / 100.0
 
 def validation_loop(model, loss_fn, dataloader):  
     model.eval()
     total_loss = 0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
-        for j, (index_list, batch) in enumerate(dataloader):
-            print('batch', j)
-            if j >= 100:
-                break
+        for j, (index_list, batch) in enumerate(tqdm(dataloader)):
+            # if j >= 99:
+            #     break
         
             # X, y = batch[:, 0], batch[:, 1]
-            X = batch[:, :-1]
+            
+            # X = batch[:, :-1]
+            # y = batch[:,-1].unsqueeze(1)
+            
+            X = batch
             y = batch
             
-            # X, y = torch.tensor(X, dtype=torch.long, device=device), torch.tensor(y, dtype=torch.long, device=device)
-            X, y = torch.tensor(X, dtype=torch.float32, device=device), torch.tensor(y, dtype=torch.float32, device=device) # TODO: check if this is correct
-
-            # Now we shift the tgt by one so with the <SOS> we predict the token at pos 1
-            y_input = y[:,:-1]
-            y_expected = y[:,1:]
+            X = torch.tensor(X).to(device)
+            y = torch.tensor(y).to(device)
+            
+            y_input = y
+            y_expected = y
             
             y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
             y_expected = y_expected.permute(1, 0, 2)
@@ -86,13 +107,18 @@ def validation_loop(model, loss_fn, dataloader):
             # Get mask to mask out the next words
             sequence_length = y_input.size(1)
             tgt_mask = model.get_tgt_mask(sequence_length).to(device)
+        
+            # X shape is (batch_size, src sequence length, input.shape)
+            # y_input shape is (batch_size, tgt sequence length, input.shape)
 
-            # Standard training except we pass in y_input and src_mask
+            # Standard training except we pass in y_input and tgt_mask
             pred = model(X, y_input, tgt_mask)
+            # pred = None
 
             # Permute pred to have batch size first again
-            pred = pred.permute(1, 0, 2)
-            loss = loss_fn(pred, y_expected)
+            # pred = pred.permute(1, 2, 0)
+            
+            loss = loss_fn(pred[-1], y_expected[-1])
             total_loss += loss.detach().item()
         
     return total_loss / len(dataloader)
@@ -114,14 +140,13 @@ def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs):
         
         print(f"Training loss: {train_loss:.4f}")
         print(f"Validation loss: {validation_loss:.4f}")
-        print()
     
     # counting number of files in ./checkpoints
     index = len(os.listdir('./checkpoints'))    
     
-    # save model
-    torch.save(model.state_dict(), './checkpoints/model' + '_' + str(index) + '.pt')
-    print('model saved as model' + '_' + str(index) + '.pt')
+    # # save model
+    # torch.save(model.state_dict(), './checkpoints/model' + '_' + str(index) + '.pt')
+    # print('model saved as model' + '_' + str(index) + '.pt')
         
     return train_loss_list, validation_loss_list
 
@@ -140,14 +165,14 @@ if __name__ == "__main__":
     # torch.multiprocessing.set_start_method('spawn')
     
     model = Transformer(num_tokens=0, dim_model=256, num_heads=8, num_encoder_layers=6, num_decoder_layers=6, dropout_p=0.1)
-    opt = optim.Adam(model.parameters(), lr=0.0001)
+    opt = optim.Adam(model.parameters(), lr=0.00001)
     loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
     
     frames_per_clip = 5
     step_between_clips = 1
     batch_size = 4
     
-    if args.dataset == 'ucf101':    
+    if args.dataset == 'ucf':    
         ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
         ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
         
@@ -193,5 +218,13 @@ if __name__ == "__main__":
     #     print(i.size())
     #     print(i)
     #     break
+    
+    # train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, test_loader, 10)
 
-    train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, test_loader, 1)
+    best_loss = 1e10
+    while True:
+        train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, test_loader, 1)
+        if validation_loss_list[-1] < best_loss:
+            best_loss = validation_loss_list[-1]
+            torch.save(model.state_dict(), './checkpoints/model_best.pt')
+            print('model saved as model_best.pt')

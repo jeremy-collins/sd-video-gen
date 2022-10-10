@@ -26,7 +26,7 @@ class Transformer(nn.Module):
 
         # LAYERS
         self.positional_encoder = PositionalEncoding(
-            dim_model=dim_model, dropout_p=dropout_p, max_len=5000
+            dim_model=dim_model, dropout_p=dropout_p, max_len=6
         )
         # self.embedding = nn.Embedding(num_tokens, dim_model)
         self.embedding = nn.Linear(self.height * self.width * 4, dim_model)
@@ -41,12 +41,9 @@ class Transformer(nn.Module):
         
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         
-        # Src size must be (batch_size, src sequence length)
-        # Tgt size must be (batch_size, tgt sequence length)
-        bs, seq_len, _, _, _ = src.shape
-        src = src.reshape(bs, seq_len, self.height * self.width * 4)
-        tgt = tgt.reshape(bs, tgt.shape[1], self.height * self.width * 4)
-        
+        # Src size must be (batch_size, src sequence length, dim_model)
+        # Tgt size must be (batch_size, tgt sequence length, dim_model)
+
         # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
         src = self.embedding(src) * math.sqrt(self.dim_model)
         tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
@@ -76,7 +73,6 @@ class Transformer(nn.Module):
         mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
         
         # mask = self.transformer.generate_square_subsequent_mask(1)
-        
         
         # EX for size=5:
         # [[0.,   0.,   0.,   0.,   -inf.],
