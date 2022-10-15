@@ -85,7 +85,7 @@ class BouncingBall(data.Dataset):
         for i in range(0, len(img_names), self.num_frames):
             index_list = []
             frame_names = []
-            for j in range(0, self.num_frames, self.stride):
+            for j in range(0, self.num_frames * self.stride, self.stride):
                 if i+j < len(img_names):
                     index_list.append(img_names[i+j][0])
                     frame_names.append(img_names[i+j][1])

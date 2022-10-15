@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader, RandomSampler
 import math
 import numpy as np
 from transformer import Transformer
@@ -19,10 +20,10 @@ def train_loop(model, opt, loss_fn, dataloader):
     model = model.to(device)
     model.train()
     total_loss = 0
-    sd_utils = SDUtils()
+    # sd_utils = SDUtils()
         
     for i, (index_list, batch) in enumerate(tqdm(dataloader)):
-        # if i >= 99:
+        # if i >= 199:
         #     break
         
         # X, y = batch[:, 0], batch[:, 1]
@@ -76,7 +77,7 @@ def train_loop(model, opt, loss_fn, dataloader):
         total_loss += loss.detach().item()
         
     return total_loss / len(dataloader)
-    # return total_loss / 100.0
+    # return total_loss / 200.0
 
 def validation_loop(model, loss_fn, dataloader):  
     model.eval()
@@ -84,7 +85,7 @@ def validation_loop(model, loss_fn, dataloader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
         for j, (index_list, batch) in enumerate(tqdm(dataloader)):
-            # if j >= 99:
+            # if j >= 49:
             #     break
         
             # X, y = batch[:, 0], batch[:, 1]
@@ -122,7 +123,7 @@ def validation_loop(model, loss_fn, dataloader):
             total_loss += loss.detach().item()
         
     return total_loss / len(dataloader)
-    # return total_loss / 100.0
+    # return total_loss / 50.0
 
 def fit(model, opt, loss_fn, train_dataloader, val_dataloader, epochs): 
     # Used for plotting later on
@@ -169,8 +170,9 @@ if __name__ == "__main__":
     loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
     
     frames_per_clip = 5
-    step_between_clips = 1
+    stride = 3
     batch_size = 4
+    epoch_ratio = 0.25
     
     if args.dataset == 'ucf':    
         ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
@@ -187,23 +189,28 @@ if __name__ == "__main__":
         ])
 
         train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                        step_between_clips=step_between_clips, train=True, transform=tfs)
+                        step_between_clips=stride, train=True, transform=tfs)
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                 collate_fn=custom_collate)
         # create test loader (allowing batches and other extras)
         test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                            step_between_clips=step_between_clips, train=False, transform=tfs)
+                            step_between_clips=stride, train=False, transform=tfs)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
                                                 collate_fn=custom_collate)
         
     elif args.dataset == 'ball':
-        train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        # train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
+        # train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='train', shuffle=True)
+        train_dataset = BouncingBall(num_frames=5, stride=stride, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='train', shuffle=True)
+        train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=train_sampler)
         
-        test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+        # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+        # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='test', shuffle=True)
+        test_dataset = BouncingBall(num_frames=5, stride=stride, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='test', shuffle=True)
+        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler)
         
-
     # # print(train_loader)
     # print("TRAIN LOADER")
     # for i in train_loader:

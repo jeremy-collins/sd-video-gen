@@ -71,7 +71,10 @@ if __name__ == "__main__":
     model.eval()
     model = model.to(device)
     
-    test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+    # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
+    # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='test', shuffle=True)
+    test_dataset = BouncingBall(num_frames=5, stride=3, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='test', shuffle=True)
+    
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
     
     with torch.no_grad():
