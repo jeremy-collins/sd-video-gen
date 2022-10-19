@@ -1,11 +1,11 @@
 # sd-video-gen
 
 ## Setup
-- Clone the repository with the command 'git clone https://github.com/jeremy-collins/sd-video-gen.git'
-- Install the dependencies: 'conda env create --file environment.yml'
+- Clone the repository with the command `git clone https://github.com/jeremy-collins/sd-video-gen.git`
+- Install the dependencies: `conda env create --file environment.yml`
 
 ## Training a model
-- 'python trainer.py --dataset <dataset_name>', where dataset_name is "ball" for the bouncing ball dataset or "ucf" for the UCF-101 dataset.
+- `python trainer.py --dataset <dataset_name>`, where dataset_name is `ball` for the bouncing ball dataset or `ucf` for the UCF-101 dataset.
 
 ## Running a trained model
-- 'python predict.py --index <index>', where index is the name of the model checkpoint. The naming convention is model_<index> in the checkpoints folder.
+- `python predict.py --index <index>`, where index is the name of the model checkpoint. The naming convention is `model_<index>` in the checkpoints folder.
