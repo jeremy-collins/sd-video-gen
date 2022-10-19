@@ -2,7 +2,8 @@
 
 ## Setup
 - Clone the repository with the command `git clone https://github.com/jeremy-collins/sd-video-gen.git`
-- Install the dependencies: `conda env create --file environment.yml`
+- Install Miniconda [here](https://docs.conda.io/en/latest/miniconda.html) if you haven't done so already.
+- Install the dependencies: `conda env create --name ls_project --file environment.yml`
 
 ## Training a model
 - `python trainer.py --dataset <dataset_name>`, where dataset_name is `ball` for the bouncing ball dataset or `ucf` for the UCF-101 dataset.
