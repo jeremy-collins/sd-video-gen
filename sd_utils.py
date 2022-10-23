@@ -130,6 +130,7 @@ class SDUtils():
     img_arr = 2 * (img_arr - 0.5)
 
     latent_dists = self.vae.encode(img_arr.to(self.device))
+    # latent_dists = self.vae.encode(img_arr)
     latent_samples = latent_dists.sample()
     latent_samples *= 0.18215
 
