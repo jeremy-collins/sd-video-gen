@@ -39,7 +39,7 @@ class Trainer():
         self.SOS_token = torch.ones((1, model.dim_model), dtype=torch.float32, device=self.device) * 2
 
 
-        auth_token = os.environ['HF_TOKEN']
+        #auth_token = os.environ['HF_TOKEN']
         print('loading VAE...')
         # 1. Load the autoencoder model which will be used to decode the latents into image space. 
         self.vae = AutoencoderKL.from_pretrained(
@@ -62,6 +62,21 @@ class Trainer():
         latent_samples *= 0.18215
 
         return latent_samples  
+
+    def gradient_difference_loss(self, frameX, frameY, alpha=2):
+        vertical_gradient_X = frameX[1:, :] - frameX[:-1, :]
+        vertical_gradient_Y = frameY[1:, :] - frameY[:-1, :]
+        vertical_gradient_loss = torch.abs(torch.abs(vertical_gradient_X) - torch.abs(vertical_gradient_Y))
+        print(vertical_gradient_loss.shape)
+
+        horizontal_gradient_X = frameX[:, 1:] - frameX[:, :-1]
+        horizontal_gradient_Y = frameY[:, 1:] - frameY[:, :-1]
+        horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
+        print(horizontal_gradient_loss.shape)
+
+        gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
+        print('gdloss', gdloss)
+        return gdloss
 
     def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict):
         model = model.to(self.device)
@@ -257,7 +272,8 @@ if __name__ == "__main__":
     
     model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
     opt = optim.Adam(model.parameters(), lr=lr)
-    loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
+    #loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
+    loss_fn = trainer.gradient_difference_loss
     
     if args.dataset == 'ucf':    
         ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
