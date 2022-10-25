@@ -51,13 +51,16 @@ def predict(model, input_sequence, max_length=5):
 
     # return y_input.view(-1).tolist()
     # return pred[0,0].view(-1).tolist()
-    return pred[0, -1]
+    return pred[0, -1] # return last item in sequence
     
 if __name__ == "__main__":  
     parser = argparse.ArgumentParser()
     parser.add_argument('--index', type=str, required=True)
     parser.add_argument('--pred_frames', type=int, default=1) # number of frames to predict
     parser.add_argument('--show', type=bool, default=False)
+    parser.add_argument('--folder', type=str, required=True)
+    parser.add_argument('--name', type=str, default='default')
+    
     args = parser.parse_args()
     
     sd_utils = SDUtils()
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
     # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='test', shuffle=True)
     # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='test', shuffle=True)
-    test_dataset = BouncingBall(num_frames=5, stride=1, dir='./data/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='test', shuffle=True)
+    test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
     
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
     

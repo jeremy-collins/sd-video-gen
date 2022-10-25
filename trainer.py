@@ -116,7 +116,8 @@ class Trainer():
             # cv2.imshow('gt_reconstruction', gt_reconstruction)
             # cv2.waitKey(0)
             
-            loss = loss_fn(pred[-1], y_expected[-1])
+            # loss = loss_fn(pred[-1], y_expected[-1])
+            loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
 
             opt.zero_grad()
             loss.backward()
@@ -166,7 +167,9 @@ class Trainer():
                 # Permute pred to have batch size first again
                 # pred = pred.permute(1, 2, 0)
                 
-                loss = loss_fn(pred[-1], y_expected[-1])
+                # loss = loss_fn(pred[-1], y_expected[-1])
+                loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+
                 total_loss += loss.detach().item()
             
         return total_loss / len(dataloader)
