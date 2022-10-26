@@ -63,14 +63,17 @@ class Trainer():
 
         return latent_samples  
 
-    def gradient_difference_loss(self, frameX, frameY, alpha=2):
-        vertical_gradient_X = frameX[1:, :] - frameX[:-1, :]
-        vertical_gradient_Y = frameY[1:, :] - frameY[:-1, :]
+    def gradient_difference_loss(self, frameX_flattened, frameY_flattened, alpha=2):
+        vert_hori_dim = torch.sqrt(frameX_flattened.shape[1]/4)
+        frameX = torch.reshape(frameX_flattened, (frameX_flattened.shape[0], 4,vert_hori_dim,vert_hori_dim))
+        frameY = torch.reshape(frameY_flattened, (frameY_flattened.shape[0], 4,vert_hori_dim,vert_hori_dim))
+        vertical_gradient_X = frameX[:, :, 1:, :] - frameX[:, :, :-1, :]
+        vertical_gradient_Y = frameY[:, :, 1:, :] - frameY[:, :, :-1, :]
         vertical_gradient_loss = torch.abs(torch.abs(vertical_gradient_X) - torch.abs(vertical_gradient_Y))
         print(vertical_gradient_loss.shape)
 
-        horizontal_gradient_X = frameX[:, 1:] - frameX[:, :-1]
-        horizontal_gradient_Y = frameY[:, 1:] - frameY[:, :-1]
+        horizontal_gradient_X = frameX[:, :, :, 1:] - frameX[:, :, :, :-1]
+        horizontal_gradient_Y = frameY[:, :, :, 1:] - frameY[:, :, :, :-1]
         horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
         print(horizontal_gradient_loss.shape)
 
