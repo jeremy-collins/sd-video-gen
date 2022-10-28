@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
                 preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
                 print('preds shape: ', pred.shape)
-                all_latents = torch.cat([inputs, preds], dim=1)
+                all_latents = torch.cat([inputs[:,:-1], preds], dim=1)
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
                 print('X after modifying: ', X.shape)
 

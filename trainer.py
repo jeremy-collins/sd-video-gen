@@ -63,16 +63,13 @@ class Trainer():
 
         return latent_samples  
 
-    def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict):
+    def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict): # TODO: move encoding from dataloader to here
         model = model.to(self.device)
         model.train()
         total_loss = 0
         # sd_utils = SDUtils()
             
         for i, (index_list, batch) in enumerate(tqdm(dataloader)):
-            # if i >= 199:
-            #     break
-            
             # X, y = batch[:, 0], batch[:, 1]
             
             # X = batch[:, :-1]
@@ -88,8 +85,8 @@ class Trainer():
             # y_expected = y
             
             # shift the tgt by one so we always predict the next embedding
-            # y_input = y[:,:-1] # all but last 
-            y_input = y # because we don't have an EOS token
+            y_input = y[:,:-1] # all but last 
+            # y_input = y # because we don't have an EOS token
             y_expected = y[:,1:] # all but first because the prediction is shifted by one
             
             y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
@@ -109,15 +106,20 @@ class Trainer():
             # Permute pred to have batch size first again
             # pred = pred.permute(1, 2, 0)
             
-            # check decoding
-            # gt = y_expected[-1][-1].reshape((1, 4, 8, 8))
+            
+            
+            # loss = loss_fn(pred[-1], y_expected[-1])
+            loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+
+            # # check decoding
+            # print('pred shape: ', pred.shape)
+            # print('y_expected shape: ', y_expected.shape)
+            # gt = y_expected[-1][0].reshape((1, 4, 8, 8)) # last frame, first batch
             # gt_reconstruction = sd_utils.decode_img_latents(gt)
             # gt_reconstruction = np.array(gt_reconstruction[0])
             # cv2.imshow('gt_reconstruction', gt_reconstruction)
             # cv2.waitKey(0)
-            
-            # loss = loss_fn(pred[-1], y_expected[-1])
-            loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+
 
             opt.zero_grad()
             loss.backward()
@@ -126,16 +128,12 @@ class Trainer():
             total_loss += loss.detach().item()
             
         return total_loss / len(dataloader)
-        # return total_loss / 200.0
 
     def validation_loop(self, model, loss_fn, dataloader, frames_to_predict):  
         model.eval()
         total_loss = 0
         with torch.no_grad():
             for j, (index_list, batch) in enumerate(tqdm(dataloader)):
-                # if j >= 49:
-                #     break
-            
                 # X, y = batch[:, 0], batch[:, 1]
                 
                 # X = batch[:, :-1]
@@ -146,9 +144,12 @@ class Trainer():
                 
                 X = torch.tensor(X).to(self.device)
                 y = torch.tensor(y).to(self.device)
-                
-                y_input = y
-                y_expected = y
+                 
+                # shift the tgt by one so we always predict the next embedding
+                y_input = y[:,:-1] # all but last 
+                # y_input = y # because we don't have an EOS token
+                y_expected = y[:,1:] # all but first because the prediction is shifted by one
+
                 
                 y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
                 y_expected = y_expected.permute(1, 0, 2)
@@ -173,7 +174,6 @@ class Trainer():
                 total_loss += loss.detach().item()
             
         return total_loss / len(dataloader)
-        # return total_loss / 50.0
 
     def fit(self, model, opt, loss_fn, train_dataloader, val_dataloader, epochs, frames_to_predict): 
         # Used for plotting later on
@@ -237,12 +237,13 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--save_best', type=bool, default=False)
     parser.add_argument('--folder', type=str, required=True)
+    parser.add_argument('--name', type=str, required=True)
     args = parser.parse_args()
     
     # torch.multiprocessing.set_start_method('spawn')
     
     frames_per_clip = 5
-    frames_to_predict = 1
+    frames_to_predict = 5
     stride = 1 # number of frames to shift when loading clips
     batch_size = 32
     epoch_ratio = 1 # to sample just a portion of the dataset
@@ -287,15 +288,10 @@ if __name__ == "__main__":
                                                 collate_fn=trainer.custom_collate)
         
     elif args.dataset == 'ball':
-        # train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='train', shuffle=True)
-        # train_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='train', shuffle=True)
-        # train_dataset = BouncingBall(num_frames=5, stride=stride, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='train', shuffle=True)
         train_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='train', shuffle=True)
         train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=train_sampler, num_workers=num_workers)
         
-        # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
-        # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='test', shuffle=True)
         test_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='test', shuffle=True)
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers)
@@ -315,8 +311,6 @@ if __name__ == "__main__":
     #     print(i)
     #     break
     
-    # train_loss_list, validation_loss_list = fit(model, opt, loss_fn, train_loader, test_loader, 10)
-
 
     if args.save_best:
         best_loss = 1e10
@@ -326,8 +320,8 @@ if __name__ == "__main__":
             train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
             if validation_loss_list[-1] < best_loss:
                 best_loss = validation_loss_list[-1]
-                torch.save(model.state_dict(), './checkpoints/model_best.pt')
-                print('model saved as model_best.pt')
+                torch.save(model.state_dict(), './checkpoints/model_' + args.name + '.pt')
+                print('model saved as model_' + str(args.name) + '.pt')
             epoch += 1
     else:
         trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
