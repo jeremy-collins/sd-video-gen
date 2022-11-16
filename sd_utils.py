@@ -13,8 +13,7 @@ from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 import os
-
-
+from transformer import Transformer
 
 # Stable Diffusion utils
 class SDUtils():
@@ -26,6 +25,9 @@ class SDUtils():
     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # self.pipe = pipe
     self.vae = vae
+    model = Transformer()
+    self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+
     # self.tokenizer = tokenizer
     # self.text_encoder = text_encoder
     # self.unet = unet
@@ -122,7 +124,7 @@ class SDUtils():
   def encode_img(self, imgs):
     # turn an image into image latents
     if not isinstance(imgs, list):
-      imgs = [imgs]
+        imgs = [imgs]
 
     img_arr = np.stack([np.array(img) for img in imgs], axis=0)
     img_arr = img_arr / 255.0
@@ -135,6 +137,16 @@ class SDUtils():
     latent_samples *= 0.18215
 
     return latent_samples  
+
+  def encode_batch(self, img_batch, use_sos=True):
+    new_batch = self.encode_img(img_batch.reshape(-1, img_batch.shape[2], img_batch.shape[3], img_batch.shape[4]).tolist()) # (batch size, sequence length, height, width, channels)
+    new_batch = new_batch.reshape(img_batch.shape[0], img_batch.shape[1], -1) # merging h w and c dims
+
+    if use_sos:
+        SOS_token = self.SOS_token.repeat(new_batch.shape[0], 1, 1)
+        new_batch = torch.cat((SOS_token, new_batch), dim=1)
+
+    return new_batch
 
   def decode_img_latents(self, latents):
     # get images from image latents

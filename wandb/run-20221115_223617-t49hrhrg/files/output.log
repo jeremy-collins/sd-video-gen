@@ -1,0 +1,11 @@
+device:  cuda
+loading VAE...
+loading VAE...
+------------------------- Epoch 1 -------------------------
+Training and validating model
+  0%|                                                                                                                                          | 0/750 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:103: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+
+
+
+  1%|▋                                                                                                                                 | 4/750 [00:08<23:29,  1.89s/it][34m[1mwandb[39m[22m: Ctrl + C detected. Stopping sweep.

@@ -1,0 +1,24 @@
+device:  cuda
+loading VAE...
+loading VAE...
+------------------------- Epoch 1 -------------------------
+Training and validating model
+  0%|                                                                                                                                            | 0/8 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:103: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+
+
+
+
+
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:14<00:00,  1.82s/it]
+  0%|                                                                                                                                            | 0/2 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:148: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:04<00:00,  2.01s/it]
+  0%|                                                                                                                                            | 0/8 [00:00<?, ?it/s]
+Training loss: 1.0513
+Validation loss: 0.7364
+model saved as model_11_14.pt
+------------------------- Epoch 2 -------------------------
+
+
+ 12%|████████████████▌                                                                                                                   | 1/8 [00:02<00:18,  2.60s/it][34m[1mwandb[39m[22m: Ctrl + C detected. Stopping sweep.

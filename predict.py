@@ -14,18 +14,10 @@ import argparse
 def predict(model, input_sequence, max_length=5):
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # y_input = torch.tensor([[SOS_token]], dtype=torch.long, device=device)
-    # y_input = torch.ones((1, model.dim_model), dtype=torch.float32, device=device) * 2 # SOS token
-    SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=device) * 2
-    EOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=device) * 3
-    # y_input = torch.tensor([SOS_token], dtype=torch.float32, device=device)
-    y_input = SOS_token
     
-    # num_tokens = len(input_sequence[0])
     with torch.no_grad():
-        # for _ in range(6):
-        # for _ in range(max_length):
-        y_input = torch.cat((SOS_token, input_sequence), dim=1)
+
+        y_input = input_sequence # should have sos if trained with it
         # Get target mask
         tgt_mask = model.get_tgt_mask(y_input.size(1)).to(device)
         
@@ -45,12 +37,6 @@ def predict(model, input_sequence, max_length=5):
         # Concatenate previous input with prediction
         y_input = torch.cat((y_input, next_item), dim=1)
 
-        # Stop if model predicts end of sentence
-        # if next_item.view(-1).item() == EOS_token:
-        #     break
-
-    # return y_input.view(-1).tolist()
-    # return pred[0,0].view(-1).tolist()
     return pred[0, -1] # return last item in sequence
     
 if __name__ == "__main__":  
@@ -81,8 +67,13 @@ if __name__ == "__main__":
         for index_list, batch in test_loader:
             inputs = torch.tensor([], device=device)
             preds = torch.tensor([], device=device)
-            X = batch
-            y = batch
+            is_pred = []
+
+            new_batch = sd_utils.encode_batch(batch, use_sos=True)
+            new_batch = torch.tensor(new_batch).to(device)
+
+            X = new_batch
+            y = new_batch
 
             X = torch.tensor(X, dtype=torch.float32, device=device)
 
@@ -102,19 +93,25 @@ if __name__ == "__main__":
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
                 preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
                 print('preds shape: ', pred.shape)
-                all_latents = torch.cat([inputs[:,:-1], preds], dim=1)
+                all_latents = torch.cat([inputs[:,:-1], preds], dim=1) # remove last input frame and add preds
+                is_pred = [False] * (inputs.shape[1] - 1) + [True] * preds.shape[1]
+                print('all_latents shape: ', all_latents.shape)
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
                 print('X after modifying: ', X.shape)
 
             if args.show:
-                for latent in all_latents.squeeze(0):
+                for i, latent in enumerate(all_latents.squeeze(0)):
                     latent = latent.reshape((1, 4, 8, 8))
                     img = sd_utils.decode_img_latents(latent)
+                    img = np.array(img[0])
+                    if is_pred[i]:
+                        # add a red border to the predicted frames
+                        img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
                     cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
                     cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                    cv2.imshow('frame', np.array(img[0]))
+                    cv2.imshow('frame', img)
                     cv2.waitKey(0)
 
 

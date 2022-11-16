@@ -11,7 +11,7 @@ from bouncing_ball_loader import BouncingBall
 import argparse
 import os
 from tqdm import tqdm
-# from sd_utils import SDUtils
+from sd_utils import SDUtils
 import cv2
 
 import os
@@ -29,17 +29,18 @@ from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 import os
+import wandb
 
 class Trainer():
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print('device: ', self.device)
-        # self.sd_utils = SDUtils()
+        self.sd_utils = SDUtils()
         model = Transformer()
-        self.SOS_token = torch.ones((1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+        self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+        # self.SOS_token = torch.ones((1, 4, 8, 8), dtype=torch.float32, device=self.device) * 2
 
-
-        auth_token = os.environ['HF_TOKEN']
+        # auth_token = os.environ['HF_TOKEN']
         print('loading VAE...')
         # 1. Load the autoencoder model which will be used to decode the latents into image space. 
         self.vae = AutoencoderKL.from_pretrained(
@@ -63,117 +64,120 @@ class Trainer():
 
         return latent_samples  
 
-    def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict): # TODO: move encoding from dataloader to here
+    def encode_batch(self, img_batch, use_sos=True):
+        # new_batch = []
+        # for frame_seq in img_batch: # (batch size, sequence length, height, width, channels)
+        #     new_frames = []
+        #     frame_seq_list = frame_seq.tolist()
+        #     new_frames = self.encode_img(frame_seq_list) # embeddings are (sequence length, channels=4, height // 8, width // 8)
+        #     new_batch.append(new_frames)
+        
+        # new_batch = torch.stack(new_batch, dim=0)
+        # new_batch = new_batch.reshape(new_batch.shape[0], new_batch.shape[1], -1) # merging h w and c dims
+
+        new_batch = self.encode_img(img_batch.reshape(-1, img_batch.shape[2], img_batch.shape[3], img_batch.shape[4]).tolist()) # (batch size, sequence length, height, width, channels)
+        new_batch = new_batch.reshape(img_batch.shape[0], img_batch.shape[1], -1) # merging h w and c dims
+
+        if use_sos:
+            SOS_token = self.SOS_token.repeat(new_batch.shape[0], 1, 1)
+            new_batch = torch.cat((SOS_token, new_batch), dim=1)
+
+        return new_batch
+
+    def check_decoding(self, latent, label='img'):
+        print('latent shape: ', latent.shape)
+        latent = latent.reshape((1, 4, 8, 8)) # reshaping to SD latent shape
+        reconstruction = self.sd_utils.decode_img_latents(latent)
+        reconstruction = np.array(reconstruction[0])
+        cv2.imshow(label, reconstruction)
+        cv2.waitKey(0)
+
+    def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict):
         model = model.to(self.device)
         model.train()
         total_loss = 0
-        # sd_utils = SDUtils()
             
         for i, (index_list, batch) in enumerate(tqdm(dataloader)):
-            # X, y = batch[:, 0], batch[:, 1]
-            
-            # X = batch[:, :-1]
-            # y = batch[:,-1].unsqueeze(1)
+            # turning batch of images into a batch of embeddings
+            new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
+            new_batch = torch.tensor(new_batch).to(self.device)
 
-            X = batch
-            y = batch
-            
-            X = torch.tensor(X).to(self.device)
-            y = torch.tensor(y).to(self.device)
-            
-            # y_input = y
-            # y_expected = y
-            
             # shift the tgt by one so we always predict the next embedding
-            y_input = y[:,:-1] # all but last 
+            y_input = new_batch[:,:-1] # all but last 
+
             # y_input = y # because we don't have an EOS token
-            y_expected = y[:,1:] # all but first because the prediction is shifted by one
+            y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
             
-            y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
+            # y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1) # merging h w and c dims --> moved to encode_batch
             y_expected = y_expected.permute(1, 0, 2)
             
             # Get mask to mask out the future frames
             sequence_length = y_input.size(1)
             tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
         
-            # X shape is (batch_size, src sequence length, input.shape)
-            # y_input shape is (batch_size, tgt sequence length, input.shape)
-
-            # Standard training except we pass in y_input and tgt_mask
-            pred = model(X, y_input, tgt_mask)
-            # pred = None
-            
-            # Permute pred to have batch size first again
-            # pred = pred.permute(1, 2, 0)
-            
-            
+            # X shape is (batch_size, src sequence length, input shape)
+            # y_input shape is (batch_size, tgt sequence length, input shape)
+            pred = model(new_batch, y_input, tgt_mask)
+            # output is (tgt sequence length, batch size, input shape)
             
             # loss = loss_fn(pred[-1], y_expected[-1])
             loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
 
-            # # check decoding
-            # print('pred shape: ', pred.shape)
-            # print('y_expected shape: ', y_expected.shape)
-            # gt = y_expected[-1][0].reshape((1, 4, 8, 8)) # last frame, first batch
-            # gt_reconstruction = sd_utils.decode_img_latents(gt)
-            # gt_reconstruction = np.array(gt_reconstruction[0])
-            # cv2.imshow('gt_reconstruction', gt_reconstruction)
-            # cv2.waitKey(0)
-
+            # checking decoding
+            # self.check_decoding(pred[0, -1], 'pred')
+            # self.check_decoding(y_expected[0, -1], 'gt')
 
             opt.zero_grad()
             loss.backward()
             opt.step()
         
             total_loss += loss.detach().item()
+
+        train_loss = total_loss / len(dataloader)
+        wandb.log({'train_loss': train_loss})
             
-        return total_loss / len(dataloader)
+        return train_loss
 
     def validation_loop(self, model, loss_fn, dataloader, frames_to_predict):  
         model.eval()
         total_loss = 0
         with torch.no_grad():
             for j, (index_list, batch) in enumerate(tqdm(dataloader)):
-                # X, y = batch[:, 0], batch[:, 1]
-                
-                # X = batch[:, :-1]
-                # y = batch[:,-1].unsqueeze(1)
-                
-                X = batch
-                y = batch
-                
-                X = torch.tensor(X).to(self.device)
-                y = torch.tensor(y).to(self.device)
-                 
-                # shift the tgt by one so we always predict the next embedding
-                y_input = y[:,:-1] # all but last 
-                # y_input = y # because we don't have an EOS token
-                y_expected = y[:,1:] # all but first because the prediction is shifted by one
+                # turning batch of images into a batch of embeddings
+                new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
+                new_batch = torch.tensor(new_batch).to(self.device)
 
+                # shift the tgt by one so we always predict the next embedding
+                y_input = new_batch[:,:-1] # all but last 
+
+                # y_input = y # because we don't have an EOS token
+                y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
                 
-                y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1)
+                # y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1) # merging h w and c dims --> moved to encode_batch
                 y_expected = y_expected.permute(1, 0, 2)
                 
-                # Get mask to mask out the next words
+                # Get mask to mask out the future frames
                 sequence_length = y_input.size(1)
                 tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
             
-                # X shape is (batch_size, src sequence length, input.shape)
-                # y_input shape is (batch_size, tgt sequence length, input.shape)
-
-                # Standard training except we pass in y_input and tgt_mask
-                pred = model(X, y_input, tgt_mask)
-                # pred = None
-
-                # Permute pred to have batch size first again
-                # pred = pred.permute(1, 2, 0)
+                # X shape is (batch_size, src sequence length, input shape)
+                # y_input shape is (batch_size, tgt sequence length, input shape)
+                pred = model(new_batch, y_input, tgt_mask)
+                # output is (tgt sequence length, batch size, input shape)
                 
                 # loss = loss_fn(pred[-1], y_expected[-1])
                 loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
 
+                # checking decoding
+                # self.check_decoding(pred[0, -1], 'pred')
+                # self.check_decoding(y_expected[0, -1], 'gt')
+
                 total_loss += loss.detach().item()
+
+            val_loss = total_loss / len(dataloader)
+            wandb.log({'val_loss': val_loss})
             
-        return total_loss / len(dataloader)
+        return val_loss
 
     def fit(self, model, opt, loss_fn, train_dataloader, val_dataloader, epochs, frames_to_predict): 
         # Used for plotting later on
@@ -232,96 +236,191 @@ class Trainer():
         return torch.utils.data.dataloader.default_collate(filtered_batch)
 
     
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, required=True)
-    parser.add_argument('--save_best', type=bool, default=False)
-    parser.add_argument('--folder', type=str, required=True)
-    parser.add_argument('--name', type=str, required=True)
-    args = parser.parse_args()
-    
-    # torch.multiprocessing.set_start_method('spawn')
-    
-    frames_per_clip = 5
-    frames_to_predict = 5
-    stride = 1 # number of frames to shift when loading clips
-    batch_size = 32
-    epoch_ratio = 1 # to sample just a portion of the dataset
-    epochs = 10
-    lr = 0.00001
-    num_workers = 0
-
-    dim_model = 256
-    num_heads = 8
-    num_encoder_layers = 6
-    num_decoder_layers = 6
-    dropout_p = 0.1
-
-    trainer = Trainer()
-    
-    model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
-    opt = optim.Adam(model.parameters(), lr=lr)
-    loss_fn = nn.MSELoss() # TODO: change this to mse + condition + gradient difference
-    
-    if args.dataset == 'ucf':    
-        ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
-        ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
+def main():
+    with wandb.init(config=wandb.config):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--dataset', type=str, required=True)
+        parser.add_argument('--save_best', type=bool, default=False)
+        parser.add_argument('--folder', type=str, required=True)
+        parser.add_argument('--name', type=str, required=True)
+        parser.add_argument('--resume', type=bool, default=False)
+        args = parser.parse_args()
         
-
-        tfs = transforms.Compose([
-                # scale in [0, 1] of type float
-                transforms.Lambda(lambda x: x / 255.),
-                # reshape into (T, C, H, W) for easier convolutions
-                transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
-                # rescale to the most common size
-                transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
-        ])
-
-        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                        step_between_clips=stride, train=True, transform=tfs)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                                                collate_fn=trainer.custom_collate)
-        # create test loader (allowing batches and other extras)
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                            step_between_clips=stride, train=False, transform=tfs)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
-                                                collate_fn=trainer.custom_collate)
+        # torch.multiprocessing.set_start_method('spawn')
         
-    elif args.dataset == 'ball':
-        train_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='train', shuffle=True)
-        train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=train_sampler, num_workers=num_workers)
-        
-        test_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='test', shuffle=True)
-        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers)
-        
-    # # print(train_loader)
-    # print("TRAIN LOADER")
-    # for i in train_loader:
-    #     print(len(i))
-    #     print(i.size())
-    #     print(i)
-    #     break
+        # frames_per_clip = 5
+        # frames_to_predict = 5
+        # stride = 1 # number of frames to shift when loading clips
+        # batch_size = 64
+        # epoch_ratio = 0.01 # to sample just a portion of the dataset
+        # epochs = 10
+        # lr = 0.0001
+        # num_workers = 12
 
-    # print("TEST LOADER")
-    # # print(test_loader)
-    # for i in test_loader:
-    #     print(i.size())
-    #     print(i)
-    #     break
+        # dim_model = 256
+        # num_heads = 8
+        # num_encoder_layers = 6
+        # num_decoder_layers = 6
+        # dropout_p = 0.1
+
+        frames_per_clip = wandb.config.frames_per_clip
+        frames_to_predict = wandb.config.frames_to_predict
+        stride = wandb.config.stride # number of frames to shift when loading clips
+        batch_size = wandb.config.batch_size
+        epoch_ratio = wandb.config.epoch_ratio # to sample just a portion of the dataset
+        epochs = wandb.config.epochs
+        lr = wandb.config.lr
+        num_workers = wandb.config.num_workers
+        
+        dim_model = wandb.config.dim_model
+        num_heads = wandb.config.num_heads
+        num_encoder_layers = wandb.config.num_encoder_layers
+        num_decoder_layers = wandb.config.num_decoder_layers
+        dropout_p = wandb.config.dropout_p
+
+        trainer = Trainer()
+        model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
+        
+        if args.resume:
+            model.load_state_dict(torch.load('./checkpoints/model_' + args.name + '.pt'))
+
+        opt = optim.Adam(model.parameters(), lr=lr)
+        loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
+        
+        if args.dataset == 'ucf':    
+            ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
+            ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
+            
+
+            tfs = transforms.Compose([
+                    # scale in [0, 1] of type float
+                    transforms.Lambda(lambda x: x / 255.),
+                    # reshape into (T, C, H, W) for easier convolutions
+                    transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
+                    # rescale to the most common size
+                    transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+            ])
+
+            train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                            step_between_clips=stride, train=True, transform=tfs)
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                                    collate_fn=trainer.custom_collate)
+            # create test loader (allowing batches and other extras)
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
+                                step_between_clips=stride, train=False, transform=tfs)
+            test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                                    collate_fn=trainer.custom_collate)
+            
+        elif args.dataset == 'ball':
+            train_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='train', shuffle=True)
+            train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=train_sampler, num_workers=num_workers, pin_memory=True)
+            
+            test_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='test', shuffle=True)
+            test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
+            test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers, pin_memory=True)
+            
+        # # print(train_loader)
+        # print("TRAIN LOADER")
+        # for i in train_loader:
+        #     print(len(i))
+        #     print(i.size())
+        #     print(i)
+        #     break
+
+        # print("TEST LOADER")
+        # # print(test_loader)
+        # for i in test_loader:
+        #     print(i.size())
+        #     print(i)
+        #     break
     
+        wandb.run.name = args.name
 
-    if args.save_best:
-        best_loss = 1e10
-        epoch = 1
-        while True:
-            print("-"*25, f"Epoch {epoch}","-"*25)
-            train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
-            if validation_loss_list[-1] < best_loss:
-                best_loss = validation_loss_list[-1]
-                torch.save(model.state_dict(), './checkpoints/model_' + args.name + '.pt')
-                print('model saved as model_' + str(args.name) + '.pt')
-            epoch += 1
-    else:
-        trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
+        if args.save_best:
+            best_loss = 1e10
+            epoch = 1
+            while True:
+                print("-"*25, f"Epoch {epoch}","-"*25)
+                train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
+                if validation_loss_list[-1] < best_loss:
+                    best_loss = validation_loss_list[-1]
+                    torch.save(model.state_dict(), './checkpoints/model_' + args.name + '.pt')
+                    print('model saved as model_' + str(args.name) + '.pt')
+                epoch += 1
+        else:
+            trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
+
+if __name__ == '__main__':
+    # SET HYPERPARAMETERS HERE
+    sweep_config = {
+        'method': 'grid',
+            }
+    metric = {
+            'name': 'val_loss',
+            'goal': 'minimize'
+        }
+    sweep_config['metric'] = metric
+    parameters_dict = {
+        'frames_per_clip': {
+            'values': [5]
+        },
+        'frames_to_predict': {
+            'values': [5]
+        },
+        'stride': {
+            'values': [1]
+        },
+        'batch_size': {
+            'values': [32]
+        },
+        'epoch_ratio': {
+            'values': [1.0]
+        },
+        'epochs': {
+            'values': [10]
+        },
+        'lr': {
+            'values': [1e-4]
+        },
+        'num_workers': {
+            'values': [12]
+        },
+
+        'dim_model': {
+            'values': [256]
+        },
+        'num_heads': {
+            'values': [8]
+        },
+        'num_encoder_layers': {
+            'values': [6]
+        },
+        'num_decoder_layers': {
+            'values': [6]
+        },
+        'dropout_p': {
+            'values': [0.1]
+        },
+
+    }
+    sweep_config['parameters'] = parameters_dict
+    sweep_id = wandb.sweep(sweep_config, project='sd_video_gen_11_15')
+
+    wandb.agent(sweep_id, main, count=20) 
+    # wandb.agent(sweep_id, main) 
+
+    # frames_per_clip = 5
+    # frames_to_predict = 5
+    # stride = 1 # number of frames to shift when loading clips
+    # batch_size = 64
+    # epoch_ratio = 0.01 # to sample just a portion of the dataset
+    # epochs = 10
+    # lr = 0.0001
+    # num_workers = 12
+
+    # dim_model = 256
+    # num_heads = 8
+    # num_encoder_layers = 6
+    # num_decoder_layers = 6
+    # dropout_p = 0.1

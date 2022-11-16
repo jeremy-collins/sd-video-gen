@@ -18,18 +18,19 @@ class Transformer(nn.Module):
     ):
         super().__init__()
 
-        # INFO
-        self.model_type = "Transformer"
         self.dim_model = dim_model
-        self.height = 8
-        self.width = 8
+
+        # IMAGE SIZE
+        self.height = 64
+        self.width = 64
+        self.compression = 8
 
         # LAYERS
         self.positional_encoder = PositionalEncoding(
             dim_model=dim_model, dropout_p=dropout_p, max_len=64
         )
         # self.embedding = nn.Embedding(num_tokens, dim_model)
-        self.embedding = nn.Linear(self.height * self.width * 4, dim_model)
+        self.embedding = nn.Linear(self.height // self.compression * self.width // self.compression * 4, dim_model)
         self.transformer = nn.Transformer(
             d_model=dim_model,
             nhead=num_heads,
@@ -37,7 +38,7 @@ class Transformer(nn.Module):
             num_decoder_layers=num_decoder_layers,
             dropout=dropout_p,
         )
-        self.out = nn.Linear(dim_model, self.height * self.width * 4)
+        self.out = nn.Linear(dim_model, self.height // self.compression  * self.width // self.compression * 4)
         
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         

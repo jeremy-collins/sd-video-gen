@@ -1,0 +1,150 @@
+2022-11-15 22:35:29,359 INFO    StreamThr :147611 [internal.py:wandb_internal():88] W&B internal server running at pid: 147611, started at: 2022-11-15 22:35:29.359326
+2022-11-15 22:35:29,361 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: status
+2022-11-15 22:35:29,362 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: status
+2022-11-15 22:35:29,363 DEBUG   SenderThread:147611 [sender.py:send():303] send: header
+2022-11-15 22:35:29,363 INFO    WriterThread:147611 [datastore.py:open_for_write():75] open: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/run-hs97d6dk.wandb
+2022-11-15 22:35:29,364 DEBUG   SenderThread:147611 [sender.py:send():303] send: run
+2022-11-15 22:35:29,543 INFO    SenderThread:147611 [dir_watcher.py:__init__():216] watching files in: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files
+2022-11-15 22:35:29,543 INFO    SenderThread:147611 [sender.py:_start_run_threads():928] run started: hs97d6dk with start time 1668569729.355797
+2022-11-15 22:35:29,543 DEBUG   SenderThread:147611 [sender.py:send():303] send: summary
+2022-11-15 22:35:29,543 INFO    SenderThread:147611 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2022-11-15 22:35:29,544 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: check_version
+2022-11-15 22:35:29,544 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: check_version
+2022-11-15 22:35:29,684 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: run_start
+2022-11-15 22:35:29,688 DEBUG   HandlerThread:147611 [system_info.py:__init__():31] System info init
+2022-11-15 22:35:29,688 DEBUG   HandlerThread:147611 [system_info.py:__init__():46] System info init done
+2022-11-15 22:35:29,688 INFO    HandlerThread:147611 [system_monitor.py:start():150] Starting system monitor
+2022-11-15 22:35:29,688 INFO    SystemMonitor:147611 [system_monitor.py:_start():116] Starting system asset monitoring threads
+2022-11-15 22:35:29,688 INFO    HandlerThread:147611 [system_monitor.py:probe():168] Collecting system info
+2022-11-15 22:35:29,689 INFO    SystemMonitor:147611 [interfaces.py:start():168] Started cpu
+2022-11-15 22:35:29,689 INFO    SystemMonitor:147611 [interfaces.py:start():168] Started disk
+2022-11-15 22:35:29,690 INFO    SystemMonitor:147611 [interfaces.py:start():168] Started gpu
+2022-11-15 22:35:29,690 INFO    SystemMonitor:147611 [interfaces.py:start():168] Started memory
+2022-11-15 22:35:29,691 INFO    SystemMonitor:147611 [interfaces.py:start():168] Started network
+2022-11-15 22:35:30,217 DEBUG   HandlerThread:147611 [system_info.py:probe():195] Probing system
+2022-11-15 22:35:30,219 DEBUG   HandlerThread:147611 [system_info.py:_probe_git():180] Probing git
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_info.py:_probe_git():188] Probing git done
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_info.py:probe():241] Probing system done
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_monitor.py:probe():177] {'os': 'Linux-5.15.0-52-generic-x86_64-with-glibc2.31', 'python': '3.10.4', 'heartbeatAt': '2022-11-16T03:35:30.217167', 'startedAt': '2022-11-16T03:35:29.344175', 'docker': None, 'cuda': None, 'args': ('--dataset', 'ball', '--save_best', 'True', '--name', '11_14', '--folder', 'data/simple_bw_3000'), 'state': 'running', 'program': '/home/jcollins90/sd-video-gen/trainer.py', 'codePath': 'trainer.py', 'git': {'remote': 'https://github.com/jeremy-collins/sd-video-gen.git', 'commit': 'bf4179eedd10f123f19369a2be3f0e09408e66ca'}, 'email': 'jer044@hotmail.com', 'root': '/home/jcollins90/sd-video-gen', 'host': 'hrl-thanos', 'username': 'jcollins90', 'executable': '/nethome/jcollins90/miniconda3/envs/ls_project/bin/python', 'cpu_count': 12, 'cpu_count_logical': 24, 'cpu_freq': {'current': 2203.4257083333337, 'min': 2200.0, 'max': 3800.0}, 'cpu_freq_per_core': [{'current': 2189.516, 'min': 2200.0, 'max': 3800.0}, {'current': 2681.996, 'min': 2200.0, 'max': 3800.0}, {'current': 2181.389, 'min': 2200.0, 'max': 3800.0}, {'current': 1950.358, 'min': 2200.0, 'max': 3800.0}, {'current': 1908.696, 'min': 2200.0, 'max': 3800.0}, {'current': 2629.391, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.619, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.398, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.564, 'min': 2200.0, 'max': 3800.0}, {'current': 3686.906, 'min': 2200.0, 'max': 3800.0}, {'current': 2076.324, 'min': 2200.0, 'max': 3800.0}, {'current': 2062.942, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.582, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.518, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.613, 'min': 2200.0, 'max': 3800.0}, {'current': 1934.864, 'min': 2200.0, 'max': 3800.0}, {'current': 1983.65, 'min': 2200.0, 'max': 3800.0}, {'current': 2516.623, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.153, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.484, 'min': 2200.0, 'max': 3800.0}, {'current': 2195.443, 'min': 2200.0, 'max': 3800.0}, {'current': 2090.676, 'min': 2200.0, 'max': 3800.0}, {'current': 2645.721, 'min': 2200.0, 'max': 3800.0}, {'current': 2037.981, 'min': 2200.0, 'max': 3800.0}], 'disk': {'total': 915.3232879638672, 'used': 709.9739875793457}, 'gpu': 'NVIDIA GeForce RTX 3090', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA GeForce RTX 3090', 'memory_total': 25423577088}], 'memory': {'total': 31.256576538085938}}
+2022-11-15 22:35:30,225 INFO    HandlerThread:147611 [system_monitor.py:probe():178] Finished collecting system info
+2022-11-15 22:35:30,225 INFO    HandlerThread:147611 [system_monitor.py:probe():181] Publishing system info
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_info.py:_save_pip():67] Saving pip packages done
+2022-11-15 22:35:30,225 DEBUG   HandlerThread:147611 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
+2022-11-15 22:35:30,544 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_created():275] file/dir created: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/requirements.txt
+2022-11-15 22:35:30,544 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_created():275] file/dir created: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-summary.json
+2022-11-15 22:35:30,544 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_created():275] file/dir created: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/conda-environment.yaml
+2022-11-15 22:35:31,793 DEBUG   HandlerThread:147611 [system_info.py:_save_conda():86] Saving conda packages done
+2022-11-15 22:35:31,793 INFO    HandlerThread:147611 [system_monitor.py:probe():183] Finished publishing system info
+2022-11-15 22:35:31,796 DEBUG   SenderThread:147611 [sender.py:send():303] send: files
+2022-11-15 22:35:31,796 INFO    SenderThread:147611 [sender.py:_save_file():1171] saving file wandb-metadata.json with policy now
+2022-11-15 22:35:31,802 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: stop_status
+2022-11-15 22:35:31,803 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: stop_status
+2022-11-15 22:35:31,864 DEBUG   SenderThread:147611 [sender.py:send():303] send: telemetry
+2022-11-15 22:35:32,172 INFO    Thread-16 :147611 [upload_job.py:push():143] Uploaded file /tmp/tmpzrzxkpecwandb/px7nih1u-wandb-metadata.json
+2022-11-15 22:35:32,546 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/conda-environment.yaml
+2022-11-15 22:35:32,546 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_created():275] file/dir created: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/output.log
+2022-11-15 22:35:32,546 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_created():275] file/dir created: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-metadata.json
+2022-11-15 22:35:34,546 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/output.log
+2022-11-15 22:35:35,369 DEBUG   SenderThread:147611 [sender.py:send():303] send: exit
+2022-11-15 22:35:35,369 INFO    SenderThread:147611 [sender.py:send_exit():442] handling exit code: 0
+2022-11-15 22:35:35,369 INFO    SenderThread:147611 [sender.py:send_exit():444] handling runtime: 5
+2022-11-15 22:35:35,370 INFO    SenderThread:147611 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2022-11-15 22:35:35,370 INFO    SenderThread:147611 [sender.py:send_exit():450] send defer
+2022-11-15 22:35:35,370 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,370 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 0
+2022-11-15 22:35:35,370 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,370 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 0
+2022-11-15 22:35:35,370 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 1
+2022-11-15 22:35:35,370 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,370 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 1
+2022-11-15 22:35:35,370 INFO    HandlerThread:147611 [system_monitor.py:finish():160] Stopping system monitor
+2022-11-15 22:35:35,371 DEBUG   SystemMonitor:147611 [system_monitor.py:_start():130] Starting system metrics aggregation loop
+2022-11-15 22:35:35,371 INFO    HandlerThread:147611 [interfaces.py:finish():173] Joined cpu
+2022-11-15 22:35:35,371 DEBUG   SystemMonitor:147611 [system_monitor.py:_start():137] Finished system metrics aggregation loop
+2022-11-15 22:35:35,372 INFO    HandlerThread:147611 [interfaces.py:finish():173] Joined disk
+2022-11-15 22:35:35,372 DEBUG   SystemMonitor:147611 [system_monitor.py:_start():141] Publishing last batch of metrics
+2022-11-15 22:35:35,436 INFO    HandlerThread:147611 [interfaces.py:finish():173] Joined gpu
+2022-11-15 22:35:35,436 INFO    HandlerThread:147611 [interfaces.py:finish():173] Joined memory
+2022-11-15 22:35:35,436 INFO    HandlerThread:147611 [interfaces.py:finish():173] Joined network
+2022-11-15 22:35:35,436 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,436 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 1
+2022-11-15 22:35:35,436 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 2
+2022-11-15 22:35:35,437 DEBUG   SenderThread:147611 [sender.py:send():303] send: stats
+2022-11-15 22:35:35,437 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,437 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 2
+2022-11-15 22:35:35,437 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,437 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 2
+2022-11-15 22:35:35,438 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 3
+2022-11-15 22:35:35,438 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,438 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 3
+2022-11-15 22:35:35,438 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,438 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 3
+2022-11-15 22:35:35,438 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 4
+2022-11-15 22:35:35,438 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,438 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 4
+2022-11-15 22:35:35,438 DEBUG   SenderThread:147611 [sender.py:send():303] send: summary
+2022-11-15 22:35:35,439 INFO    SenderThread:147611 [sender.py:_save_file():1171] saving file wandb-summary.json with policy end
+2022-11-15 22:35:35,439 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,439 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 4
+2022-11-15 22:35:35,439 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 5
+2022-11-15 22:35:35,439 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,439 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 5
+2022-11-15 22:35:35,439 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,439 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 5
+2022-11-15 22:35:35,526 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 6
+2022-11-15 22:35:35,526 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:35,527 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 6
+2022-11-15 22:35:35,527 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:35,527 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 6
+2022-11-15 22:35:35,547 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/config.yaml
+2022-11-15 22:35:35,547 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-summary.json
+2022-11-15 22:35:36,369 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: poll_exit
+2022-11-15 22:35:37,330 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 7
+2022-11-15 22:35:37,330 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: poll_exit
+2022-11-15 22:35:37,331 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:37,331 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 7
+2022-11-15 22:35:37,331 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:37,331 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 7
+2022-11-15 22:35:37,331 INFO    SenderThread:147611 [dir_watcher.py:finish():362] shutting down directory watcher
+2022-11-15 22:35:37,370 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: poll_exit
+2022-11-15 22:35:37,547 INFO    Thread-13 :147611 [dir_watcher.py:_on_file_modified():292] file/dir modified: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/output.log
+2022-11-15 22:35:37,548 INFO    SenderThread:147611 [dir_watcher.py:finish():392] scan: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files
+2022-11-15 22:35:37,548 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-summary.json wandb-summary.json
+2022-11-15 22:35:37,548 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/conda-environment.yaml conda-environment.yaml
+2022-11-15 22:35:37,549 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-metadata.json wandb-metadata.json
+2022-11-15 22:35:37,549 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/config.yaml config.yaml
+2022-11-15 22:35:37,552 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/requirements.txt requirements.txt
+2022-11-15 22:35:37,556 INFO    SenderThread:147611 [dir_watcher.py:finish():406] scan save: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/output.log output.log
+2022-11-15 22:35:37,564 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 8
+2022-11-15 22:35:37,565 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: poll_exit
+2022-11-15 22:35:37,565 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:37,566 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 8
+2022-11-15 22:35:37,569 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:37,569 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 8
+2022-11-15 22:35:37,570 INFO    SenderThread:147611 [file_pusher.py:finish():168] shutting down file pusher
+2022-11-15 22:35:37,945 INFO    Thread-18 :147611 [upload_job.py:push():143] Uploaded file /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/conda-environment.yaml
+2022-11-15 22:35:37,952 INFO    Thread-19 :147611 [upload_job.py:push():143] Uploaded file /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/config.yaml
+2022-11-15 22:35:37,968 INFO    Thread-21 :147611 [upload_job.py:push():143] Uploaded file /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/output.log
+2022-11-15 22:35:38,042 INFO    Thread-17 :147611 [upload_job.py:push():143] Uploaded file /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/wandb-summary.json
+2022-11-15 22:35:38,167 INFO    Thread-20 :147611 [upload_job.py:push():143] Uploaded file /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/files/requirements.txt
+2022-11-15 22:35:38,368 INFO    Thread-12 (_thread_body):147611 [sender.py:transition_state():463] send defer: 9
+2022-11-15 22:35:38,368 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:38,368 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 9
+2022-11-15 22:35:38,368 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:38,369 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 9
+2022-11-15 22:35:38,369 INFO    SenderThread:147611 [file_pusher.py:join():173] waiting for file pusher
+2022-11-15 22:35:38,369 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 10
+2022-11-15 22:35:38,369 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: defer
+2022-11-15 22:35:38,369 INFO    HandlerThread:147611 [handler.py:handle_request_defer():162] handle defer: 10
+2022-11-15 22:35:38,369 DEBUG   SenderThread:147611 [sender.py:send_request():317] send_request: defer
+2022-11-15 22:35:38,369 INFO    SenderThread:147611 [sender.py:send_request_defer():459] handle sender defer: 10
+2022-11-15 22:35:38,371 WARNING StreamThr :147611 [internal.py:is_dead():385] Internal process exiting, parent pid 147577 disappeared
+2022-11-15 22:35:38,371 ERROR   StreamThr :147611 [internal.py:wandb_internal():147] Internal process shutdown.
+2022-11-15 22:35:38,372 DEBUG   HandlerThread:147611 [handler.py:handle_request():139] handle_request: poll_exit
+2022-11-15 22:35:38,372 INFO    HandlerThread:147611 [handler.py:finish():814] shutting down handler
+2022-11-15 22:35:38,437 INFO    SenderThread:147611 [sender.py:transition_state():463] send defer: 11
+2022-11-15 22:35:38,437 INFO    SenderThread:147611 [sender.py:finish():1331] shutting down sender
+2022-11-15 22:35:38,437 INFO    SenderThread:147611 [file_pusher.py:finish():168] shutting down file pusher
+2022-11-15 22:35:38,437 INFO    SenderThread:147611 [file_pusher.py:join():173] waiting for file pusher
+2022-11-15 22:35:38,439 INFO    WriterThread:147611 [datastore.py:close():279] close: /home/jcollins90/sd-video-gen/wandb/run-20221115_223529-hs97d6dk/run-hs97d6dk.wandb
