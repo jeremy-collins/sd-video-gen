@@ -11,7 +11,7 @@ import cv2
 import os
 import argparse
 
-def predict(model, input_sequence, max_length=5):
+def predict(model, input_sequence):
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
