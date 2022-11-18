@@ -37,8 +37,11 @@ def parse_config_args():
     parser.add_argument('--show', type=bool, default=False)
     parser.add_argument('--name', type=str, default='default')
     parser.add_argument('--fullscreen', type=bool, default=False)
-    parser.add_argument('--save_output', type=bool, default=False)
+<<<<<<< HEAD
     parser.add_argument('--index', type=int, default=0) # last part of model name
+=======
+    parser.add_argument('--save_output', type=bool, default=False)
+>>>>>>> 0fa588ec21c178c2cfdb736037b6c213494c44ae
     
     args = parser.parse_args()
     return load_config(args.config), args
