@@ -1,0 +1,174 @@
+{
+    "os": "Linux-5.15.0-53-generic-x86_64-with-glibc2.31",
+    "python": "3.10.4",
+    "heartbeatAt": "2022-11-18T06:18:45.144491",
+    "startedAt": "2022-11-18T06:18:44.301378",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--dataset",
+        "ucf",
+        "--save_best",
+        "True",
+        "--config",
+        "config_test",
+        "--folder",
+        "data"
+    ],
+    "state": "running",
+    "program": "/home/jcollins90/sd-video-gen/trainer.py",
+    "codePath": "trainer.py",
+    "git": {
+        "remote": "https://github.com/jeremy-collins/sd-video-gen.git",
+        "commit": "b28edd72c8e54a9684fc939ffc449bc802a68ea1"
+    },
+    "email": "jer044@hotmail.com",
+    "root": "/home/jcollins90/sd-video-gen",
+    "host": "hrl-thanos",
+    "username": "jcollins90",
+    "executable": "/nethome/jcollins90/miniconda3/envs/ls_project/bin/python",
+    "cpu_count": 12,
+    "cpu_count_logical": 24,
+    "cpu_freq": {
+        "current": 2234.8814166666666,
+        "min": 2200.0,
+        "max": 3800.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2176.145,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2170.422,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2431.321,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2254.405,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2133.118,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2430.872,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2290.332,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 3215.83,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2084.773,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1863.358,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1891.124,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2453.752,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2179.835,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2110.073,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2195.405,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2312.316,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1999.681,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2287.691,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2508.575,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2054.637,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2045.862,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1858.504,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2185.909,
+            "min": 2200.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2737.387,
+            "min": 2200.0,
+            "max": 3800.0
+        }
+    ],
+    "disk": {
+        "total": 915.3232879638672,
+        "used": 730.9414253234863
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3090",
+            "memory_total": 25423577088
+        }
+    ],
+    "memory": {
+        "total": 31.256580352783203
+    }
+}

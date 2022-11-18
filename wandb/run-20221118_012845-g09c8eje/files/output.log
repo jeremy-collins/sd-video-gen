@@ -1,0 +1,231 @@
+device:  cuda
+loading VAE...
+loading VAE...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 45/45 [00:01<00:00, 32.78it/s]
+  0%|                                                                                                                                                                                                                                                              | 0/45 [00:00<?, ?it/s]
+Number of training samples:  62982
+TRAIN DATASET
+3
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 45/45 [00:01<00:00, 30.82it/s]
+  0%|                                                                                                                                                                                                                                                            | 0/3937 [00:00<?, ?it/s]
+------------------------- Epoch 1 -------------------------
+  0%|                                                                                                                                                                                                                                                            | 0/3937 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:101: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+  0%|                                                                                                                                                                                                                                                  | 1/3937 [00:06<7:16:36,  6.66s/it]
+
+  0%|                                                                                                                                                                                                                                                  | 2/3937 [00:14<7:49:04,  7.15s/it]
+latent shape:  torch.Size([1024])
+
+  0%|▏                                                                                                                                                                                                                                                 | 4/3937 [00:16<3:23:58,  3.11s/it]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  0%|▍                                                                                                                                                                                                                                                 | 7/3937 [00:18<1:28:19,  1.35s/it]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  0%|▌                                                                                                                                                                                                                                                 | 9/3937 [00:19<1:06:36,  1.02s/it]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  0%|▋                                                                                                                                                                                                                                                  | 12/3937 [00:22<55:11,  1.19it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  0%|▉                                                                                                                                                                                                                                                  | 15/3937 [00:24<52:52,  1.24it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  0%|█                                                                                                                                                                                                                                                  | 18/3937 [00:26<46:37,  1.40it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|█▎                                                                                                                                                                                                                                                 | 21/3937 [00:28<41:00,  1.59it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|█▌                                                                                                                                                                                                                                                 | 25/3937 [00:30<40:50,  1.60it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|█▊                                                                                                                                                                                                                                                 | 29/3937 [00:32<32:24,  2.01it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|██                                                                                                                                                                                                                                                 | 34/3937 [00:34<27:55,  2.33it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|██▎                                                                                                                                                                                                                                                | 38/3937 [00:36<31:26,  2.07it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|██▌                                                                                                                                                                                                                                                | 42/3937 [00:38<30:14,  2.15it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|██▊                                                                                                                                                                                                                                                | 46/3937 [00:40<30:00,  2.16it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|██▉                                                                                                                                                                                                                                                | 48/3937 [00:42<46:41,  1.39it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|███▏                                                                                                                                                                                                                                               | 52/3937 [00:44<38:42,  1.67it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|███▍                                                                                                                                                                                                                                               | 55/3937 [00:46<39:20,  1.64it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  1%|███▋                                                                                                                                                                                                                                               | 59/3937 [00:48<40:29,  1.60it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|███▊                                                                                                                                                                                                                                               | 62/3937 [00:50<39:11,  1.65it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|████                                                                                                                                                                                                                                               | 66/3937 [00:52<33:56,  1.90it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|████▎                                                                                                                                                                                                                                              | 69/3937 [00:54<36:52,  1.75it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|████▌                                                                                                                                                                                                                                              | 73/3937 [00:56<34:39,  1.86it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|████▋                                                                                                                                                                                                                                              | 76/3937 [00:58<33:35,  1.92it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|████▉                                                                                                                                                                                                                                              | 80/3937 [01:00<35:13,  1.83it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|█████▏                                                                                                                                                                                                                                             | 84/3937 [01:02<30:58,  2.07it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|█████▍                                                                                                                                                                                                                                             | 88/3937 [01:04<30:35,  2.10it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|█████▋                                                                                                                                                                                                                                             | 92/3937 [01:06<29:44,  2.15it/s]
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+latent shape:  torch.Size([1024])
+
+  2%|█████▋                                                                                                                                                                                                                                             | 93/3937 [01:06<32:40,  1.96it/s]
+latent shape:  torch.Size([1024])
+
+  2%|█████▋                                                                                                                                                                                                                                             | 93/3937 [01:06<32:40,  1.96it/s][34m[1mwandb[39m[22m: Ctrl + C detected. Stopping sweep.

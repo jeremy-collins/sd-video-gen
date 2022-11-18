@@ -14,11 +14,13 @@ from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 import os
 from transformer import Transformer
+from config import parse_config_args
 
 # Stable Diffusion utils
 class SDUtils():
   def __init__(self):
-    
+    self.config, self.args = parse_config_args()
+
     # pipe, vae, tokenizer, text_encoder, unet, scheduler = load_models()
     vae = self.load_models()
     
@@ -26,7 +28,7 @@ class SDUtils():
     # self.pipe = pipe
     self.vae = vae
     model = Transformer()
-    self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+    self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
 
     # self.tokenizer = tokenizer
     # self.text_encoder = text_encoder
@@ -123,12 +125,14 @@ class SDUtils():
    
   def encode_img(self, imgs):
     # turn an image into image latents
-    if not isinstance(imgs, list):
-        imgs = [imgs]
+    # if not isinstance(imgs, list):
+    #     imgs = [imgs]
 
-    img_arr = np.stack([np.array(img) for img in imgs], axis=0)
-    img_arr = img_arr / 255.0
-    img_arr = torch.from_numpy(img_arr).float().permute(0, 3, 1, 2)
+    # img_arr = np.stack([np.array(img) for img in imgs], axis=0)
+
+    img_arr = imgs / 255.0
+    # img_arr = torch.from_numpy(img_arr).float().permute(0, 3, 1, 2)
+    img_arr = img_arr.float().permute(0, 3, 1, 2)
     img_arr = 2 * (img_arr - 0.5)
 
     latent_dists = self.vae.encode(img_arr.to(self.device))
@@ -139,13 +143,12 @@ class SDUtils():
     return latent_samples  
 
   def encode_batch(self, img_batch, use_sos=True):
-    new_batch = self.encode_img(img_batch.reshape(-1, img_batch.shape[2], img_batch.shape[3], img_batch.shape[4]).tolist()) # (batch size, sequence length, height, width, channels)
+    new_batch = self.encode_img(img_batch.reshape(-1, img_batch.shape[2], img_batch.shape[3], img_batch.shape[4])) # .tolist()) # (batch size, sequence length, height, width, channels)
     new_batch = new_batch.reshape(img_batch.shape[0], img_batch.shape[1], -1) # merging h w and c dims
 
     if use_sos:
         SOS_token = self.SOS_token.repeat(new_batch.shape[0], 1, 1)
         new_batch = torch.cat((SOS_token, new_batch), dim=1)
-
     return new_batch
 
   def decode_img_latents(self, latents):

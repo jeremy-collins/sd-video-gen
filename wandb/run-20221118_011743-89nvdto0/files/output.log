@@ -1,0 +1,230 @@
+device:  cuda
+loading VAE...
+loading VAE...
+Number of training samples:  10340
+TRAIN DATASET
+3
+torch.Size([5, 128, 128, 3])
+------------------------- Epoch 1 -------------------------
+Training and validating model
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9/9 [00:00<00:00, 12.29it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9/9 [00:00<00:00, 13.27it/s]
+  0%|                                                                                                                                                                                                                                                             | 0/647 [00:00<?, ?it/s]
+starting batch:  0
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  1
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  2
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  3
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  4
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+  0%|                                                                                                                                                                                                                                                             | 0/647 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:134: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+  1%|█▉                                                                                                                                                                                                                                                   | 5/647 [00:04<06:02,  1.77it/s]
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  6
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  7
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  8
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  9
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  10
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  11
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+
+  2%|████▌                                                                                                                                                                                                                                               | 12/647 [00:06<03:07,  3.39it/s]
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  13
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  14
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  15
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  16
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  17
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  18
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  19
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+
+  3%|███████▌                                                                                                                                                                                                                                            | 20/647 [00:08<02:54,  3.60it/s]
+starting batch:  20
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  21
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  22
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  23
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  24
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  25
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  26
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+
+  4%|██████████▏                                                                                                                                                                                                                                         | 27/647 [00:10<02:51,  3.61it/s]
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  28
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  29
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  30
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  31
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  32
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  33
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+
+  5%|████████████▊                                                                                                                                                                                                                                       | 34/647 [00:12<02:49,  3.61it/s]
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  35
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  36
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  37
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  38
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  39
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  40
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+
+  6%|███████████████▍                                                                                                                                                                                                                                    | 41/647 [00:14<02:47,  3.62it/s]
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  42
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  43
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  44
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  45
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  46
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  47
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  48
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+
+
+  8%|███████████████████▌                                                                                                                                                                                                                                | 52/647 [00:17<02:48,  3.54it/s][34m[1mwandb[39m[22m: Ctrl + C detected. Stopping sweep.
+starting batch:  49
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  50
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  51
+SOS_token shape:  torch.Size([16, 1, 1024])
+new_batch shape:  torch.Size([16, 5, 1024])
+new_batch shape:  torch.Size([16, 6, 1024])
+starting batch:  52

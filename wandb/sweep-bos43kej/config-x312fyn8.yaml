@@ -1,0 +1,34 @@
+wandb_version: 1
+
+batch_size:
+  value: 128
+dim_model:
+  value: 256
+dropout_p:
+  value: 0.1
+epoch_ratio:
+  value: 1
+epochs:
+  value: 10
+frames_per_clip:
+  value: 5
+frames_to_predict:
+  value: 5
+lambda_gdl:
+  value: 1
+lr:
+  value: 0.0001
+num_decoder_layers:
+  value: 6
+num_encoder_layers:
+  value: 6
+num_heads:
+  value: 8
+num_workers:
+  value: 12
+stride:
+  value: 1
+use_gdl:
+  value: true
+use_mse:
+  value: true

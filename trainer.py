@@ -30,14 +30,20 @@ from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 import os
 import wandb
+import datetime
+from config import parse_config_args
 
 class Trainer():
     def __init__(self):
+        self.config, self.args = parse_config_args()
+        # counting number of files in ./checkpoints containing config name
+        self.index = len([name for name in os.listdir('./checkpoints') if self.args.config in name])
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print('device: ', self.device)
         self.sd_utils = SDUtils()
         model = Transformer()
-        self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+        # self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
+        self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
         # self.SOS_token = torch.ones((1, 4, 8, 8), dtype=torch.float32, device=self.device) * 2
 
         # auth_token = os.environ['HF_TOKEN']
@@ -47,48 +53,15 @@ class Trainer():
         'CompVis/stable-diffusion-v1-4', subfolder='vae', use_auth_token=True)
         self.vae = self.vae.to(self.device)
     
-    def encode_img(self, imgs):
-        # turn an image into image latents
-        if not isinstance(imgs, list):
-            imgs = [imgs]
-
-        img_arr = np.stack([np.array(img) for img in imgs], axis=0)
-        img_arr = img_arr / 255.0
-        img_arr = torch.from_numpy(img_arr).float().permute(0, 3, 1, 2)
-        img_arr = 2 * (img_arr - 0.5)
-
-        latent_dists = self.vae.encode(img_arr.to(self.device))
-        # latent_dists = self.vae.encode(img_arr)
-        latent_samples = latent_dists.sample()
-        latent_samples *= 0.18215
-
-        return latent_samples  
-
-    def encode_batch(self, img_batch, use_sos=True):
-        # new_batch = []
-        # for frame_seq in img_batch: # (batch size, sequence length, height, width, channels)
-        #     new_frames = []
-        #     frame_seq_list = frame_seq.tolist()
-        #     new_frames = self.encode_img(frame_seq_list) # embeddings are (sequence length, channels=4, height // 8, width // 8)
-        #     new_batch.append(new_frames)
-        
-        # new_batch = torch.stack(new_batch, dim=0)
-        # new_batch = new_batch.reshape(new_batch.shape[0], new_batch.shape[1], -1) # merging h w and c dims
-
-        new_batch = self.encode_img(img_batch.reshape(-1, img_batch.shape[2], img_batch.shape[3], img_batch.shape[4]).tolist()) # (batch size, sequence length, height, width, channels)
-        new_batch = new_batch.reshape(img_batch.shape[0], img_batch.shape[1], -1) # merging h w and c dims
-
-        if use_sos:
-            SOS_token = self.SOS_token.repeat(new_batch.shape[0], 1, 1)
-            new_batch = torch.cat((SOS_token, new_batch), dim=1)
-
-        return new_batch
-
-    def check_decoding(self, latent, label='img'):
+    def check_decoding(self, latent, label='img', fullscreen=False):
         print('latent shape: ', latent.shape)
-        latent = latent.reshape((1, 4, 8, 8)) # reshaping to SD latent shape
+        latent = latent.reshape((1, 4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)) # reshaping to SD latent shape
+        # latent = latent.reshape((1, 4, 16, 16)) # reshaping to SD latent shape
         reconstruction = self.sd_utils.decode_img_latents(latent)
         reconstruction = np.array(reconstruction[0])
+        if fullscreen:
+            cv2.namedWindow(label, cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty(label, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow(label, reconstruction)
         cv2.waitKey(0)
 
@@ -108,13 +81,13 @@ class Trainer():
         gdloss = gdloss / (frameX_flattened.shape[0] * 4 * vert_hori_dim * vert_hori_dim) # normalizing
         return gdloss
     
-    def criterion(self, use_mse=True, use_gdl=True, lambda_gdl=1):
+    def criterion(self, use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2):
         if use_mse and not use_gdl:
             return nn.MSELoss()
         elif use_gdl and not use_mse:
             return self.gradient_difference_loss
         elif use_mse and use_gdl:
-            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1])
+            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
 
     def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict):
         model = model.to(self.device)
@@ -122,6 +95,7 @@ class Trainer():
         total_loss = 0
             
         for i, (index_list, batch) in enumerate(tqdm(dataloader)):
+            # print('batch shape: ', batch.shape)
             # turning batch of images into a batch of embeddings
             new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
             new_batch = torch.tensor(new_batch).to(self.device)
@@ -146,12 +120,12 @@ class Trainer():
             
             # loss = loss_fn(pred[-1], y_expected[-1])
             loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
-            print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
-            print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
+            # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
 
             # checking decoding
-            # self.check_decoding(pred[0, -1], 'pred')
-            # self.check_decoding(y_expected[0, -1], 'gt')
+            # self.check_decoding(pred[0, -1], 'pred', fullscreen=True)
+            # self.check_decoding(y_expected[0, -1], 'gt', fullscreen=True)
 
             opt.zero_grad()
             loss.backward()
@@ -223,13 +197,13 @@ class Trainer():
             print(f"Training loss: {train_loss:.4f}")
             print(f"Validation loss: {validation_loss:.4f}")
         
-        # counting number of files in ./checkpoints
-        index = len(os.listdir('./checkpoints'))    
+
+        # index = len(os.listdir('./checkpoints'))    
         
         if epochs > 1:
             # save model
-            torch.save(model.state_dict(), './checkpoints/model' + '_' + str(index) + '.pt')
-            print('model saved as model' + '_' + str(index) + '.pt')
+            torch.save(model.state_dict(), './checkpoints/' + self.args.config + '_' + str(self.index) + '.pt')
+            print('model saved as ' + self.args.config + '_' + str(self.index) + '.pt')
             
         return train_loss_list, validation_loss_list
 
@@ -258,21 +232,19 @@ class Trainer():
     def custom_collate(self, batch):
         filtered_batch = []
         for video, _, label in batch:
-            filtered_batch.append((video, label))
+            # filtered_batch.append((video, label))
+            filtered_batch.append((label, video))
         return torch.utils.data.dataloader.default_collate(filtered_batch)
 
     
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, required=True)
-    parser.add_argument('--save_best', type=bool, default=False)
-    parser.add_argument('--folder', type=str, required=True)
-    parser.add_argument('--name', type=str, required=True)
-    parser.add_argument('--resume', type=bool, default=False)
-    parser.add_argument('--debug', type=bool, default=False)
-    args = parser.parse_args()
+    config, args = parse_config_args()
+
+    # appending current date to name
+    # args.config = args.config + '_' + str(datetime.date.today())
     
     if args.debug:
+        os.environ['WANDB_SILENT']="true"
         wandb.init(mode="disabled")
     else:
         wandb.init(config=wandb.config)
@@ -312,40 +284,60 @@ def main():
     use_mse = wandb.config.use_mse
     use_gdl = wandb.config.use_gdl
     lambda_gdl = wandb.config.lambda_gdl
+    alpha = wandb.config.alpha
 
     trainer = Trainer()
     model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
     
     if args.resume:
-        model.load_state_dict(torch.load('./checkpoints/model_' + args.name + '.pt'))
+        model.load_state_dict(torch.load('./checkpoints/model_' + args.config + '.pt'))
 
     opt = optim.Adam(model.parameters(), lr=lr)
     # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
-    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl)
+    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha)
     
-    if args.dataset == 'ucf':    
-        ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
-        ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
+    if args.dataset == 'ucf':
+        ucf_data_dir = 'data/UCF-101/UCF-101'
+        # ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+        # ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+
+        # ucf_data_dir = "/Users/jsikka/Documents/UCF-101"
+        # ucf_label_dir = "/Users/jsikka/Documents/ucfTrainTestlist"
         
 
         tfs = transforms.Compose([
                 # scale in [0, 1] of type float
-                transforms.Lambda(lambda x: x / 255.),
+                # transforms.Lambda(lambda x: x / 255.),
                 # reshape into (T, C, H, W) for easier convolutions
                 transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
                 # rescale to the most common size
-                transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+
+                # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+                transforms.Lambda(lambda x: nn.functional.interpolate(x, (config.FRAME_SIZE, config.FRAME_SIZE))),
+                transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
+                # rgb to bgr
+                transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
         ])
 
-        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                        step_between_clips=stride, train=True, transform=tfs)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                                                collate_fn=trainer.custom_collate)
+        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=True, transform=tfs, num_workers=num_workers) # frames_between_clips/frame_rate
+        print("Number of training samples: ", len(train_dataset))
+        # # print(train_loader)
+        print("TRAIN DATASET")
+        for i in train_dataset:
+            print(len(i))
+            print(i[0].size())
+            # print(i)
+            break
+
+        train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, # shuffle=True
+                                                collate_fn=trainer.custom_collate, num_workers=num_workers, pin_memory=True, sampler=train_sampler)
         # create test loader (allowing batches and other extras)
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip,
-                            step_between_clips=stride, train=False, transform=tfs)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
-                                                collate_fn=trainer.custom_collate)
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=False, transform=tfs, num_workers=num_workers) # frames_between_clips/frame_rate
+        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, # shuffle=True
+                                                collate_fn=trainer.custom_collate, num_workers=num_workers, pin_memory=True, sampler=test_sampler)
         
     elif args.dataset == 'ball':
         train_dataset = BouncingBall(num_frames=5, stride=stride, dir=args.folder, stage='train', shuffle=True)
@@ -356,13 +348,6 @@ def main():
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers, pin_memory=True)
         
-    # # print(train_loader)
-    # print("TRAIN LOADER")
-    # for i in train_loader:
-    #     print(len(i))
-    #     print(i.size())
-    #     print(i)
-    #     break
 
     # print("TEST LOADER")
     # # print(test_loader)
@@ -371,7 +356,7 @@ def main():
     #     print(i)
     #     break
 
-    wandb.run.name = args.name
+    wandb.run.name = args.config + '_' + str(trainer.index)
 
     if args.save_best:
         best_loss = 1e10
@@ -381,13 +366,25 @@ def main():
             train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
             if validation_loss_list[-1] < best_loss:
                 best_loss = validation_loss_list[-1]
-                torch.save(model.state_dict(), './checkpoints/model_' + args.name + '.pt')
-                print('model saved as model_' + str(args.name) + '.pt')
+                torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '.pt')
+                print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt')
             epoch += 1
     else:
         trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
 
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--dataset', type=str, required=True)
+    # parser.add_argument('--save_best', type=bool, default=False)
+    # parser.add_argument('--folder', type=str, required=True) # data folder
+    # parser.add_argument('--config', type=str, required=True) # model/config name
+    # parser.add_argument('--resume', type=bool, default=False) # resume training from checkpoint
+    # parser.add_argument('--debug', type=bool, default=False) # turn off wandb logging
+    # args = parser.parse_args()
+
+    config, args = parse_config_args()
+
+    # os.environ['WANDB_SILENT']="true"
     # SET HYPERPARAMETERS HERE
     sweep_config = {
         'method': 'grid',
@@ -399,57 +396,60 @@ if __name__ == '__main__':
     sweep_config['metric'] = metric
     parameters_dict = {
         'frames_per_clip': {
-            'values': [5]
+            'values': config.FRAMES_PER_CLIP
         },
         'frames_to_predict': {
-            'values': [5]
+            'values': config.FRAMES_TO_PREDICT
         },
         'stride': {
-            'values': [1]
+            'values': config.STRIDE
         },
         'batch_size': {
-            'values': [32]
+            'values': config.BATCH_SIZE
         },
         'epoch_ratio': {
-            'values': [0.01]
+            'values': config.EPOCH_RATIO
         },
         'epochs': {
-            'values': [10]
+            'values': config.EPOCHS
         },
         'lr': {
-            'values': [1e-4]
+            'values': config.LR
         },
         'num_workers': {
-            'values': [12]
+            'values': config.NUM_WORKERS
         },
 
         'dim_model': {
-            'values': [256]
+            'values': config.DIM_MODEL
         },
         'num_heads': {
-            'values': [8]
+            'values': config.NUM_HEADS
         },
         'num_encoder_layers': {
-            'values': [6]
+            'values': config.NUM_ENCODER_LAYERS
         },
         'num_decoder_layers': {
-            'values': [6]
+            'values': config.NUM_DECODER_LAYERS
         },
         'dropout_p': {
-            'values': [0.1]
+            'values': config.DROPOUT_P
         },
         'use_mse': {
-            'values': [True]
+            'values': config.USE_MSE
         },
         'use_gdl': {
-            'values': [True]
+            'values': config.USE_GDL
         },
         'lambda_gdl': {
-            'values': [1.0]
+            'values': config.LAMBDA_GDL
+        },
+        'alpha': {
+            'values': config.ALPHA
         },
     }
     sweep_config['parameters'] = parameters_dict
-    sweep_id = wandb.sweep(sweep_config, project='sd_video_gen_11_15')
+    sweep_id = wandb.sweep(sweep_config, project='sd-video-gen', entity='sd-video-gen')
 
-    wandb.agent(sweep_id, main, count=20) 
-    # wandb.agent(sweep_id, main) 
+    wandb.agent(sweep_id, main)
+    # wandb.agent(sweep_id, main, count=20) 

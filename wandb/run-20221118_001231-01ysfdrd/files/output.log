@@ -1,0 +1,19 @@
+device:  cuda
+loading VAE...
+loading VAE...
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9/9 [00:00<00:00, 13.21it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9/9 [00:00<00:00, 12.85it/s]
+Number of training samples:  10340
+TRAIN DATASET
+3
+torch.Size([5, 64, 64, 3])
+------------------------- Epoch 1 -------------------------
+Training and validating model
+  0%|                                                                                                                                                                                                                                                               | 0/2 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:128: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:05<00:00,  2.70s/it]
+  0%|                                                                                                                                                                                                                                                               | 0/1 [00:00<?, ?it/s]/home/jcollins90/sd-video-gen/trainer.py:175: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  new_batch = torch.tensor(new_batch).to(self.device)
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:02<00:00,  2.37s/it]
+Training loss: 1.9438
+Validation loss: 1.5155

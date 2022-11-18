@@ -4,6 +4,7 @@ import torch.optim as optim
 from positional_encoding import PositionalEncoding
 import math
 import numpy as np
+from config import parse_config_args
 
 class Transformer(nn.Module):
     # Constructor
@@ -18,11 +19,13 @@ class Transformer(nn.Module):
     ):
         super().__init__()
 
+        self.config, self.args = parse_config_args()
+
         self.dim_model = dim_model
 
         # IMAGE SIZE
-        self.height = 64
-        self.width = 64
+        self.height = self.config.FRAME_SIZE
+        self.width = self.config.FRAME_SIZE
         self.compression = 8
 
         # LAYERS

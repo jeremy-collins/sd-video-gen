@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import math
 import numpy as np
 from transformer import Transformer
 from bouncing_ball_loader import BouncingBall
@@ -10,6 +8,9 @@ import PIL
 import cv2
 import os
 import argparse
+from torchvision.datasets import UCF101
+import torchvision.transforms as transforms
+from config import parse_config_args
 
 def predict(model, input_sequence):
     model.eval()
@@ -40,29 +41,58 @@ def predict(model, input_sequence):
     return pred[0, -1] # return last item in sequence
     
 if __name__ == "__main__":  
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--index', type=str, required=True)
-    parser.add_argument('--pred_frames', type=int, default=1) # number of frames to predict
-    parser.add_argument('--show', type=bool, default=False)
-    parser.add_argument('--folder', type=str, required=True)
-    parser.add_argument('--name', type=str, default='default')
-    
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--index', type=str, required=True)
+    # parser.add_argument('--pred_frames', type=int, default=1) # number of frames to predict
+    # parser.add_argument('--show', type=bool, default=False)
+    # parser.add_argument('--folder', type=str, required=True)
+    # parser.add_argument('--name', type=str, default='default')
+    # parser.add_argument('--fullscreen', type=bool, default=False)
+    # parser.add_argument('--dataset', type=str, required=True)
+    # args = parser.parse_args()
+
+    config, args = parse_config_args()
     
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Transformer()
-    model.load_state_dict(torch.load('./checkpoints/model_' + str(args.index) + '.pt'))
+    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '.pt'))
     model.eval()
     model = model.to(device)
-    
-    # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_1/test1_bouncing_ball', stage='test', shuffle=True)
-    # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/bouncing_ball_1000_blackwhite1/content/2D-bouncing/test3_bouncing_ball', stage='test', shuffle=True)
-    # test_dataset = BouncingBall(num_frames=5, stride=1, dir='/media/jer/data/tccvg/bouncing_ball_3000_blackwhite_simple1/content/2D-bouncing/test2_simple_bouncing_ball', stage='test', shuffle=True)
-    test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
-    
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
-    
+
+
+    if args.dataset == 'ball':
+        test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
+
+    elif args.dataset == 'ucf':
+        tfs = transforms.Compose([
+                    # scale in [0, 1] of type float
+                    # transforms.Lambda(lambda x: x / 255.),
+                    # reshape into (T, C, H, W) for easier convolutions
+                    transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
+                    # rescale to the most common size
+
+                    # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+                    transforms.Lambda(lambda x: nn.functional.interpolate(x, (64, 64))),
+                    transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
+                    # rgb to bgr
+                    transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
+            ])
+
+        def custom_collate(batch):
+            filtered_batch = []
+            for video, _, label in batch:
+                # filtered_batch.append((video, label))
+                filtered_batch.append((label, video))
+            return torch.utils.data.dataloader.default_collate(filtered_batch)
+
+        # ucf_data_dir = 'data/UCF-101/UCF-101'
+        ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
+        
     with torch.no_grad():
         for index_list, batch in test_loader:
             inputs = torch.tensor([], device=device)
@@ -109,8 +139,9 @@ if __name__ == "__main__":
                         img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
-                    cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
-                    cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    if args.fullscreen:
+                        cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
+                        cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
 
