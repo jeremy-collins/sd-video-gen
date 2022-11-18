@@ -296,10 +296,14 @@ def main():
     # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
     loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha)
     
-    if args.dataset == 'ucf':
-        ucf_data_dir = 'data/UCF-101/UCF-101'
-        # ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
-        # ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+    if 'ucf' in args.dataset:
+        if args.dataset.endswith('wallpushups'):
+            ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+        elif args.dataset.endswith('workout'):
+            ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+        else:
+            ucf_data_dir = 'data/UCF-101/UCF-101'
+            
         ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
         # ucf_data_dir = "/Users/jsikka/Documents/UCF-101"

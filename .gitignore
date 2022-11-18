@@ -1,3 +1,5 @@
 checkpoints/
 data/
 2D-bouncing/
+wandb/
+__pycache__/

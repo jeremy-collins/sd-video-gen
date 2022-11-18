@@ -37,6 +37,7 @@ def parse_config_args():
     parser.add_argument('--show', type=bool, default=False)
     parser.add_argument('--name', type=str, default='default')
     parser.add_argument('--fullscreen', type=bool, default=False)
+    parser.add_argument('--index', type=int, default=0) # last part of model name
     
     args = parser.parse_args()
     return load_config(args.config), args

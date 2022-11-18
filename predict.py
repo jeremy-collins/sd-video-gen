@@ -56,7 +56,7 @@ if __name__ == "__main__":
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Transformer()
-    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '.pt'))
+    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index) + '.pt'))
     model.eval()
     model = model.to(device)
 
