@@ -129,11 +129,31 @@ if __name__ == "__main__":
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
                 print('X after modifying: ', X.shape)
 
+            if args.save_output:
+                frame_indices = index_list[0]
+                for i, latent in enumerate(all_latents.squeeze(0)):
+                    latent = latent.reshape((1, 4, 8, 8))
+                    img = sd_utils.decode_img_latents(latent)
+                    img = np.array(img[0])
+                    
+                    if is_pred[i]:
+                        # add a red border to the predicted frames
+                        # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
+                        # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
+                        cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
+                    # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
+                    # input_img[0].save(img_path)
+                    # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
+                    # cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    # cv2.imshow('frame', img)
+                    # cv2.waitKey(0)
+
             if args.show:
                 for i, latent in enumerate(all_latents.squeeze(0)):
                     latent = latent.reshape((1, 4, 8, 8))
                     img = sd_utils.decode_img_latents(latent)
                     img = np.array(img[0])
+                    
                     if is_pred[i]:
                         # add a red border to the predicted frames
                         img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
