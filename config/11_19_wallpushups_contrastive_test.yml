@@ -4,7 +4,7 @@ LR:
 BATCH_SIZE: 
  - 16
 EPOCHS: 
- - 10
+ - 30
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
@@ -25,11 +25,11 @@ FRAME_SIZE: 128
 DIM_MODEL: 
  - 1024
 NUM_HEADS: 
- - 8
+ - 16
 NUM_ENCODER_LAYERS: 
- - 6
+ - 12
 NUM_DECODER_LAYERS: 
- - 6
+ - 12
 DROPOUT_P: 
  - 0.1
 
@@ -43,4 +43,4 @@ LAMBDA_GDL:
 ALPHA: 
  - 2 # gdl exponent
 USE_CONTRASTIVE: 
- - False
+ - True

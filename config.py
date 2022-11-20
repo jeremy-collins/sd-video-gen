@@ -28,17 +28,20 @@ def parse_config_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--save_best', type=bool, default=False)
-    parser.add_argument('--folder', type=str, required=True) # data folder
+    parser.add_argument('--folder', type=str, default=None) # data folder
     parser.add_argument('--config', type=str, required=True) # model/config name
     parser.add_argument('--resume', type=bool, default=False) # resume training from checkpoint
     parser.add_argument('--debug', type=bool, default=False) # turn off wandb logging
+    parser.add_argument('--flip', type=bool, default=False) # flipping augmentation
 
     parser.add_argument('--pred_frames', type=int, default=1) # number of frames to predict
     parser.add_argument('--show', type=bool, default=False)
     parser.add_argument('--name', type=str, default='default')
+    parser.add_argument('--old_name', type=str, default='old_name_default') # model to load when resuming training
     parser.add_argument('--fullscreen', type=bool, default=False)
     parser.add_argument('--save_output', type=bool, default=False)
     parser.add_argument('--index', type=int, default=0) # last part of model name
+    parser.add_argument('--denoise', type=bool, default=False) # denoise predictions 
     
     args = parser.parse_args()
     return load_config(args.config), args

@@ -140,14 +140,39 @@ if __name__ == "__main__":
 
             for iteration in range(args.pred_frames):
                 pred = predict(model, X)
+                if args.denoise:
+                    print('denoising predicted frame...')
+                    print('pred.shape:', pred.shape)
+                    uncond_text_embeddings = sd_utils.encode_text([''])
+                    denoise_pred = pred.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
+                    # interpolate to 64x64
+                    denoise_pred = nn.functional.interpolate(denoise_pred, (64, 64), mode='bilinear') # resize to latents corresponding to 512x512 image
+                    # denoise_pred = sd_utils.denoise_img_latents(text_embeddings=uncond_text_embeddings, height=config.FRAME_SIZE, width=config.FRAME_SIZE, latents=denoise_pred, num_inference_steps=100, guidance_scale=0)
+                    denoise_pred = sd_utils.gen_i2i_latents(uncond_text_embeddings, height=config.FRAME_SIZE, width=config.FRAME_SIZE,
+                                    num_inference_steps=50, guidance_scale=0, latents=denoise_pred,
+                                    return_all_latents=False, start_step=48)
+                    denoised_img = sd_utils.decode_img_latents(denoise_pred)
+                    denoised_img = torch.tensor(denoised_img, device=device) # .permute(0, 3, 1, 2)
+                    print('denoised_img.shape:', denoised_img.shape)
+                    denoised_img = nn.functional.interpolate(denoised_img.permute(0, 3, 1, 2), (config.FRAME_SIZE, config.FRAME_SIZE))
+                    denoised_img = denoised_img.permute(0, 2, 3, 1).unsqueeze(0)
+                    pred = sd_utils.encode_batch(denoised_img, use_sos=False)
+                    print('pred.shape:', pred.shape)
+                    pred = pred.flatten()
+
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
                 preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
                 print('preds shape: ', pred.shape)
+
+                
+ 
                 all_latents = torch.cat([inputs[:,:-1], preds], dim=1) # remove last input frame and add preds
                 is_pred = [False] * (inputs.shape[1] - 1) + [True] * preds.shape[1]
                 print('all_latents shape: ', all_latents.shape)
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
                 print('X after modifying: ', X.shape)
+
+                
 
             if args.save_output:
                 frame_indices = index_list[0]

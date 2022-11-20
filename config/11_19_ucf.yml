@@ -1,20 +1,20 @@
 # General config
 LR: 
- - 0.00001
+ - 0.000005
 BATCH_SIZE: 
  - 16
 EPOCHS: 
- - 10
+ - 1000000
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 12
+ - 8
 
 # Video config
 FRAMES_PER_CLIP: 
  - 5
 FRAMES_TO_PREDICT: 
- - 5
+ - 3
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
@@ -43,4 +43,4 @@ LAMBDA_GDL:
 ALPHA: 
  - 2 # gdl exponent
 USE_CONTRASTIVE: 
- - False
+ - True

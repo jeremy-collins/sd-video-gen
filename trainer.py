@@ -33,6 +33,7 @@ import wandb
 import datetime
 from config import parse_config_args
 from transformers import get_linear_schedule_with_warmup
+from contrastive_loss import BiPatchNCE
 
 class Trainer():
     def __init__(self):
@@ -81,14 +82,34 @@ class Trainer():
         gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
         gdloss = gdloss / (frameX_flattened.shape[0] * 4 * vert_hori_dim * vert_hori_dim) # normalizing
         return gdloss
+
+    # def contrastive_loss(num_frames, batch_size, feat_height, feat_width, temperature):
+    #     return BiPatchNCE(num_frames, batch_size, feat_height, feat_width, temperature)
     
-    def criterion(self, use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2):
+    def criterion(self, use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2, use_contrastive=True, temperature=0.07, lambda_contrastive=0.1):
         if use_mse and not use_gdl:
             return nn.MSELoss()
         elif use_gdl and not use_mse:
             return self.gradient_difference_loss
         elif use_mse and use_gdl:
             return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
+        elif use_mse and use_gdl and use_contrastive:
+            # (tgt sequence length, batch size, input shape)
+            frames_to_predict = self.config.FRAMES_TO_PREDICT
+            batch_size = self.config.BATCH_SIZE
+            feat_height = self.config.FRAME_SIZE // 8
+            feat_width = self.config.FRAME_SIZE // 8
+            print('frames_to_predict: ', frames_to_predict)
+            print('batch_size: ', batch_size)
+            print('feat_height: ', feat_height)
+            print('feat_width: ', feat_width)
+            print('temperature: ', temperature)
+            bpnce = BiPatchNCE(frames_to_predict, batch_size, feat_height, feat_width, temperature)
+            # return lambda x, y: BiPatchNCE(num_frames, batch_size, feat_height, feat_width, temperature)
+            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) + lambda_contrastive * bpnce(x.permute(1,0,2).reshape(batch_size, frames_to_predict,4,feat_height, feat_width), y.permute(1,0,2).reshape(batch_size, frames_to_predict,4,feat_height, feat_width))
+        else:
+            print('Invalid loss function combination')
+            return None
 
     def train_loop(self, model, opt, scheduler, loss_fn, dataloader, frames_to_predict):
         model = model.to(self.device)
@@ -181,33 +202,16 @@ class Trainer():
             
         return val_loss
 
-    def fit(self, model, opt, scheduler, loss_fn, train_dataloader, val_dataloader, epochs, frames_to_predict): 
-        # Used for plotting later on
-        train_loss_list, validation_loss_list = [], []
-        
+    def fit(self, model, opt, scheduler, loss_fn, train_dataloader, val_dataloader, frames_to_predict): 
         print("Training and validating model")
-        for epoch in range(epochs):
-            if epochs > 1:
-                print("-"*25, f"Epoch {epoch + 1}","-"*25)
             
-            train_loss = self.train_loop(model, opt, scheduler, loss_fn, train_dataloader, frames_to_predict)
-            train_loss_list += [train_loss]
-            
-            validation_loss = self.validation_loop(model, loss_fn, val_dataloader, frames_to_predict)
-            validation_loss_list += [validation_loss]
-            
-            print(f"Training loss: {train_loss:.4f}")
-            print(f"Validation loss: {validation_loss:.4f}")
+        train_loss = self.train_loop(model, opt, scheduler, loss_fn, train_dataloader, frames_to_predict)
+        validation_loss = self.validation_loop(model, loss_fn, val_dataloader, frames_to_predict)
         
+        print(f"Training loss: {train_loss:.4f}")
+        print(f"Validation loss: {validation_loss:.4f}")
 
-        # index = len(os.listdir('./checkpoints'))    
-        
-        if epochs > 1:
-            # save model
-            torch.save(model.state_dict(), './checkpoints/' + self.args.config + '_' + str(self.index) + '.pt')
-            print('model saved as ' + self.args.config + '_' + str(self.index) + '.pt')
-            
-        return train_loss_list, validation_loss_list
+        return train_loss, validation_loss
 
     def collate_embeddings(self, batch):
         # turn list of images into a batch of embeddings
@@ -289,6 +293,7 @@ def main():
     alpha = wandb.config.alpha
     frame_size = wandb.config.frame_size
     fps = wandb.config.frame_rate
+    use_contrastive = wandb.config.use_contrastive
 
     trainer = Trainer()
     model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
@@ -296,15 +301,22 @@ def main():
     print('number of parameters: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     if args.resume:
-        model.load_state_dict(torch.load('./checkpoints/model_' + args.config + '.pt'))
+        model.load_state_dict(torch.load('./checkpoints/' + args.old_name + '.pt'))
 
-    
+    opt = optim.Adam(model.parameters(), lr=lr)
+    # opt = optim.AdamW(model.parameters(), lr=lr)
+    # scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
+    scheduler = None
+    # loss_fn = nn.MSELoss()
+    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha, use_contrastive)  # , temperature)
     
     if 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
             ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
         elif args.dataset.endswith('workout'):
             ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+        elif args.dataset.endswith('instruments'):
+            ucf_data_dir = 'data/UCF-101/UCF-101-instruments'
         elif args.dataset == 'ucf':
             ucf_data_dir = 'data/UCF-101/UCF-101'
         else:
@@ -325,9 +337,12 @@ def main():
 
                 # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
                 transforms.Lambda(lambda x: nn.functional.interpolate(x, (frame_size, frame_size))),
+                # horizontal flipping
+                transforms.Lambda(lambda x: torch.flip(x, dims=[3]) if (torch.rand(1) > 0.5 and args.flip) else x),
                 transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
                 # rgb to bgr
                 transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
+                
         ])
 
         print('Loading UCF dataset from', ucf_data_dir)
@@ -365,45 +380,38 @@ def main():
     #     break
 
     # opt = optim.Adam(model.parameters(), lr=lr)
-    opt = optim.AdamW(model.parameters(), lr=lr)
-    scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
-    # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
-    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha)
+    # # opt = optim.AdamW(model.parameters(), lr=lr)
+    # scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
+    # # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
+    # loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha, use_contrastive)  # , temperature)
 
     wandb.run.name = args.config + '_' + str(trainer.index)
 
-    if args.save_best:
-        best_loss = 1e10
-        epoch = 1
-        # while True:
-        for epoch in range(1, epochs+1):
-            print("-"*25, f"Epoch {epoch}","-"*25)
-            train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt,  scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
-            if validation_loss_list[-1] < best_loss:
-            # if train_loss_list[-1] < best_loss: # TODO: DELETE THIS!!!
-                best_loss = validation_loss_list[-1]
-                # best_loss = train_loss_list[-1] # TODO: DELETE THIS!!!
-                torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '.pt')
-                # print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt') 
-                print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt' + '(LOWEST TRAINING LOSS!)') # TODO: DELETE THIS!!!
-
-            epoch += 1
-    else:
-        trainer.fit(model=model, opt=opt, scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
+    best_train_loss = 1e10
+    best_val_loss = 1e10
+    epoch = 1
+    
+    # while True:
+    for epoch in range(1, epochs+1):
+        print("-"*25, f"Epoch {epoch}","-"*25)
+        train_loss, validation_loss = trainer.fit(model=model, opt=opt,  scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, frames_to_predict=frames_to_predict)
+        
+        if args.save_best: # save best model
+            if train_loss < best_train_loss:
+                best_train_loss = train_loss
+                torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '_train' + '.pt')
+                print('model saved as ' + args.config + '_' + str(trainer.index)+ '_train.pt (best train loss)')
+            if validation_loss < best_val_loss:
+                best_val_loss = validation_loss
+                torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '_test' + '.pt')
+                print('model saved as ' + args.config + '_' + str(trainer.index) +  '_test.pt (best test loss)')
+        else: # save last model
+            torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '.pt')
+            print('model saved as ' + args.config + '_' + str(trainer.index) + '.pt')
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--dataset', type=str, required=True)
-    # parser.add_argument('--save_best', type=bool, default=False)
-    # parser.add_argument('--folder', type=str, required=True) # data folder
-    # parser.add_argument('--config', type=str, required=True) # model/config name
-    # parser.add_argument('--resume', type=bool, default=False) # resume training from checkpoint
-    # parser.add_argument('--debug', type=bool, default=False) # turn off wandb logging
-    # args = parser.parse_args()
-
     config, args = parse_config_args()
 
-    # os.environ['WANDB_SILENT']="true"
     # SET HYPERPARAMETERS HERE
     sweep_config = {
         'method': 'grid',
@@ -471,6 +479,9 @@ if __name__ == '__main__':
         },
         'frame_rate': {
             'values': config.FPS
+        },
+        'use_contrastive': {
+            'values': config.USE_CONTRASTIVE
         },
     }
     sweep_config['parameters'] = parameters_dict

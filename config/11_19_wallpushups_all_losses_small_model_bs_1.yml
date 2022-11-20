@@ -2,28 +2,28 @@
 LR: 
  - 0.00001
 BATCH_SIZE: 
- - 16
+ - 1
 EPOCHS: 
- - 10
+ - 1000000
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 12
+ - 1
 
 # Video config
 FRAMES_PER_CLIP: 
- - 5
+ - 6
 FRAMES_TO_PREDICT: 
- - 5
+ - 3
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
- - 3
+ - 5
 FRAME_SIZE: 128
 
 # Transformer config
 DIM_MODEL: 
- - 1024
+ - 256
 NUM_HEADS: 
  - 8
 NUM_ENCODER_LAYERS: 
@@ -43,4 +43,4 @@ LAMBDA_GDL:
 ALPHA: 
  - 2 # gdl exponent
 USE_CONTRASTIVE: 
- - False
+ - True

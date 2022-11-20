@@ -21,8 +21,8 @@ class SDUtils():
   def __init__(self):
     self.config, self.args = parse_config_args()
 
-    # pipe, vae, tokenizer, text_encoder, unet, scheduler = load_models()
-    vae = self.load_models()
+    vae, tokenizer, text_encoder, unet, scheduler = self.load_models()
+    # vae = self.load_models()
     
     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # self.pipe = pipe
@@ -30,10 +30,10 @@ class SDUtils():
     model = Transformer()
     self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
 
-    # self.tokenizer = tokenizer
-    # self.text_encoder = text_encoder
-    # self.unet = unet
-    # self.scheduler = scheduler
+    self.tokenizer = tokenizer
+    self.text_encoder = text_encoder
+    self.unet = unet
+    self.scheduler = scheduler
     
     
   def load_models(self):
@@ -52,26 +52,28 @@ class SDUtils():
     vae = AutoencoderKL.from_pretrained(
         'CompVis/stable-diffusion-v1-4', subfolder='vae', use_auth_token=True)
     vae = vae.to(device)
-
-
-    # print('loading tokenizer...')
-    # # 2. Load the tokenizer and text encoder to tokenize and encode the text. 
-    # tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
-    # text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
-    # text_encoder = text_encoder.to(device)
-
-    # print('loading UNet...')
-    # # 3. The UNet model for generating the latents.
-    # unet = UNet2DConditionModel.from_pretrained(
-    #     'CompVis/stable-diffusion-v1-4', subfolder='unet', use_auth_token=True)
-    # unet = unet.to(device)
-
-    # # 4. Create a scheduler for inference
-    # scheduler = LMSDiscreteScheduler(
-    #     beta_start=0.00085, beta_end=0.012,
-    #     beta_schedule='scaled_linear', num_train_timesteps=1000)
     
-    return vae
+    if self.args.denoise:
+      print('loading tokenizer...')
+      # 2. Load the tokenizer and text encoder to tokenize and encode the text. 
+      tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
+      text_encoder = CLIPTextModel.from_pretrained('openai/clip-vit-large-patch14')
+      text_encoder = text_encoder.to(device)
+
+      print('loading UNet...')
+      # 3. The UNet model for generating the latents.
+      unet = UNet2DConditionModel.from_pretrained(
+          'CompVis/stable-diffusion-v1-4', subfolder='unet', use_auth_token=True)
+      unet = unet.to(device)
+
+      # 4. Create a scheduler for inference
+      scheduler = LMSDiscreteScheduler(
+          beta_start=0.00085, beta_end=0.012,
+          beta_schedule='scaled_linear', num_train_timesteps=1000)
+    
+      return vae, tokenizer, text_encoder, unet, scheduler
+    else:
+      return vae, None, None, None, None
       
   def encode_text(self, prompt):
     # Tokenize a prompt or a list of prompts and get embeddings
@@ -162,8 +164,9 @@ class SDUtils():
     imgs = (imgs / 2 + 0.5).clamp(0, 1)
     imgs = imgs.detach().cpu().permute(0, 2, 3, 1).numpy()
     imgs = (imgs * 255).round().astype('uint8')
-    pil_images = [Image.fromarray(image) for image in imgs]
-    return pil_images
+    # pil_images = [Image.fromarray(image) for image in imgs]
+    # return pil_images
+    return imgs
 
   def prompt_to_img(self, prompts, height=512, width=512, num_inference_steps=50,
                   guidance_scale=7.5, latents=None):
