@@ -11,6 +11,7 @@ import argparse
 from torchvision.datasets import UCF101
 import torchvision.transforms as transforms
 from config import parse_config_args
+import fvd
 
 def predict(model, input_sequence):
     model.eval()
@@ -104,6 +105,10 @@ if __name__ == "__main__":
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
         
+    dectector_for_fvd = fvd.load_detector()
+    stats_groundtruth = fvd.get_FeatureStats()
+    stats_predicted = fvd.get_FeatureStats()
+    
     with torch.no_grad():
         for index_list, batch in test_loader:
             print('index_list', index_list)
@@ -130,7 +135,17 @@ if __name__ == "__main__":
                     inputs = torch.cat((inputs, input.unsqueeze(0).unsqueeze(0)), dim=1)
                     print('inputs shape: ', inputs.shape)
 
-            for iteration in range(args.pred_frames):
+            trans224 = transforms.Compose([transforms.Lambda(lambda x: x.permute(0, 1, 4, 2, 3)),
+                                            transforms.Lambda(lambda x: x.squeeze(0)), 
+                                            transforms.Resize(224), 
+                                            transforms.Lambda(lambda x: x.unsqueeze(0)),
+                                            transforms.Lambda(lambda x: x.permute(0, 1, 3, 4, 2)),
+                                            ])
+            groundtruth_frames = trans224(batch)
+            #print('groundtruth_frames', groundtruth_frames.shape)
+            fvd.update_stats_for_sequence(dectector_for_fvd, stats_groundtruth, groundtruth_frames)
+
+            for iteration in range(config.FRAMES_TO_PREDICT[0]):
                 pred = predict(model, X)
                 if args.denoise:
                     print('denoising predicted frame...')
@@ -165,7 +180,7 @@ if __name__ == "__main__":
                 print('X after modifying: ', X.shape)
 
                 
-
+            predicted_frames = []
             if args.save_output:
                 frame_indices = index_list[0]
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -179,12 +194,19 @@ if __name__ == "__main__":
                         # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
                         # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
                         cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
+                        predicted_frames.append(img)
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
                     # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
                     # cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     # cv2.imshow('frame', img)
                     # cv2.waitKey(0)
+
+                #print('predicted_frames', len(predicted_frames))
+                predicted_frames = torch.from_numpy(np.array(predicted_frames).reshape((1,config.FRAMES_TO_PREDICT[0],config.FRAME_SIZE, config.FRAME_SIZE, 3)))
+                #print('predicted_frames', predicted_frames.shape)
+                predicted_frames = trans224(predicted_frames)
+                fvd.update_stats_for_sequence(dectector_for_fvd, stats_predicted, predicted_frames)
 
             if args.show:
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -203,6 +225,9 @@ if __name__ == "__main__":
                         cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
+                    
+        fvd_score = fvd.compute_fvd(stats_predicted, stats_groundtruth)
+        print('FVD : ', fvd_score)
 
 
     #     # counting number of files in ./checkpoints
