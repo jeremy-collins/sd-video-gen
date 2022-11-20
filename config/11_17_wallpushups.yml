@@ -18,7 +18,7 @@ FRAMES_TO_PREDICT:
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
- - 2 # not currently being used
+ - None # not currently being used
 FRAME_SIZE: 128
 
 # Transformer config

@@ -32,6 +32,7 @@ import os
 import wandb
 import datetime
 from config import parse_config_args
+from transformers import get_linear_schedule_with_warmup
 
 class Trainer():
     def __init__(self):
@@ -89,7 +90,7 @@ class Trainer():
         elif use_mse and use_gdl:
             return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
 
-    def train_loop(self, model, opt, loss_fn, dataloader, frames_to_predict):
+    def train_loop(self, model, opt, scheduler, loss_fn, dataloader, frames_to_predict):
         model = model.to(self.device)
         model.train()
         total_loss = 0
@@ -130,6 +131,7 @@ class Trainer():
             opt.zero_grad()
             loss.backward()
             opt.step()
+            # scheduler.step()
         
             total_loss += loss.detach().item()
 
@@ -179,7 +181,7 @@ class Trainer():
             
         return val_loss
 
-    def fit(self, model, opt, loss_fn, train_dataloader, val_dataloader, epochs, frames_to_predict): 
+    def fit(self, model, opt, scheduler, loss_fn, train_dataloader, val_dataloader, epochs, frames_to_predict): 
         # Used for plotting later on
         train_loss_list, validation_loss_list = [], []
         
@@ -188,7 +190,7 @@ class Trainer():
             if epochs > 1:
                 print("-"*25, f"Epoch {epoch + 1}","-"*25)
             
-            train_loss = self.train_loop(model, opt, loss_fn, train_dataloader, frames_to_predict)
+            train_loss = self.train_loop(model, opt, scheduler, loss_fn, train_dataloader, frames_to_predict)
             train_loss_list += [train_loss]
             
             validation_loss = self.validation_loop(model, loss_fn, val_dataloader, frames_to_predict)
@@ -285,24 +287,28 @@ def main():
     use_gdl = wandb.config.use_gdl
     lambda_gdl = wandb.config.lambda_gdl
     alpha = wandb.config.alpha
+    frame_size = wandb.config.frame_size
+    fps = wandb.config.frame_rate
 
     trainer = Trainer()
     model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
     
+    print('number of parameters: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+
     if args.resume:
         model.load_state_dict(torch.load('./checkpoints/model_' + args.config + '.pt'))
 
-    opt = optim.Adam(model.parameters(), lr=lr)
-    # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
-    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha)
+    
     
     if 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
             ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
         elif args.dataset.endswith('workout'):
             ucf_data_dir = 'data/UCF-101/UCF-101-workout'
-        else:
+        elif args.dataset == 'ucf':
             ucf_data_dir = 'data/UCF-101/UCF-101'
+        else:
+            raise ValueError('Invalid dataset name')
             
         ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
@@ -318,27 +324,25 @@ def main():
                 # rescale to the most common size
 
                 # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
-                transforms.Lambda(lambda x: nn.functional.interpolate(x, (config.FRAME_SIZE, config.FRAME_SIZE))),
+                transforms.Lambda(lambda x: nn.functional.interpolate(x, (frame_size, frame_size))),
                 transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
                 # rgb to bgr
                 transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
         ])
 
-        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=True, transform=tfs, num_workers=num_workers) # frames_between_clips/frame_rate
+        print('Loading UCF dataset from', ucf_data_dir)
+
+
+        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=True, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
         print("Number of training samples: ", len(train_dataset))
-        # # print(train_loader)
-        print("TRAIN DATASET")
-        for i in train_dataset:
-            print(len(i))
-            print(i[0].size())
-            # print(i)
-            break
 
         train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, # shuffle=True
                                                 collate_fn=trainer.custom_collate, num_workers=num_workers, pin_memory=True, sampler=train_sampler)
         # create test loader (allowing batches and other extras)
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=False, transform=tfs, num_workers=num_workers) # frames_between_clips/frame_rate
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=False, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
+        print("Number of test samples: ", len(test_dataset))
+
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, # shuffle=True
                                                 collate_fn=trainer.custom_collate, num_workers=num_workers, pin_memory=True, sampler=test_sampler)
@@ -360,21 +364,32 @@ def main():
     #     print(i)
     #     break
 
+    # opt = optim.Adam(model.parameters(), lr=lr)
+    opt = optim.AdamW(model.parameters(), lr=lr)
+    scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
+    # loss_fn = nn.MSELoss() # TODO: change this to mse + contrastive + gradient difference
+    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha)
+
     wandb.run.name = args.config + '_' + str(trainer.index)
 
     if args.save_best:
         best_loss = 1e10
         epoch = 1
-        while True:
+        # while True:
+        for epoch in range(1, epochs+1):
             print("-"*25, f"Epoch {epoch}","-"*25)
-            train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
+            train_loss_list, validation_loss_list = trainer.fit(model=model, opt=opt,  scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=1, frames_to_predict=frames_to_predict)
             if validation_loss_list[-1] < best_loss:
+            # if train_loss_list[-1] < best_loss: # TODO: DELETE THIS!!!
                 best_loss = validation_loss_list[-1]
+                # best_loss = train_loss_list[-1] # TODO: DELETE THIS!!!
                 torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '.pt')
-                print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt')
+                # print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt') 
+                print('model saved as ' + args.config + '_' + str(trainer.index)+ '.pt' + '(LOWEST TRAINING LOSS!)') # TODO: DELETE THIS!!!
+
             epoch += 1
     else:
-        trainer.fit(model=model, opt=opt, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
+        trainer.fit(model=model, opt=opt, scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, epochs=epochs, frames_to_predict=frames_to_predict)
 
 if __name__ == '__main__':
     # parser = argparse.ArgumentParser()
@@ -450,6 +465,12 @@ if __name__ == '__main__':
         },
         'alpha': {
             'values': config.ALPHA
+        },
+        'frame_size': {
+            'values': [config.FRAME_SIZE]
+        },
+        'frame_rate': {
+            'values': config.FPS
         },
     }
     sweep_config['parameters'] = parameters_dict

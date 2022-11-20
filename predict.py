@@ -55,7 +55,8 @@ if __name__ == "__main__":
     
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = Transformer()
+    # TODO: make config make sense
+    model = Transformer(num_tokens=0, dim_model=config.DIM_MODEL[0], num_heads=config.NUM_HEADS[0], num_encoder_layers=config.NUM_ENCODER_LAYERS[0], num_decoder_layers=config.NUM_DECODER_LAYERS[0], dropout_p=config.DROPOUT_P[0]) 
     model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index) + '.pt'))
     model.eval()
     model = model.to(device)
@@ -65,20 +66,30 @@ if __name__ == "__main__":
         test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
 
-    elif args.dataset == 'ucf':
-        tfs = transforms.Compose([
-                    # scale in [0, 1] of type float
-                    # transforms.Lambda(lambda x: x / 255.),
-                    # reshape into (T, C, H, W) for easier convolutions
-                    transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
-                    # rescale to the most common size
+    elif 'ucf' in args.dataset:
+        if args.dataset.endswith('wallpushups'):
+            ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+        elif args.dataset.endswith('workout'):
+            ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+        else:
+            ucf_data_dir = 'data/UCF-101/UCF-101'
+            
+        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
-                    # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
-                    transforms.Lambda(lambda x: nn.functional.interpolate(x, (64, 64))),
-                    transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
-                    # rgb to bgr
-                    transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
-            ])
+        tfs = transforms.Compose([
+                # scale in [0, 1] of type float
+                # transforms.Lambda(lambda x: x / 255.),
+                # reshape into (T, C, H, W) for easier convolutions
+                transforms.Lambda(lambda x: x.permute(0, 3, 1, 2)),
+                # rescale to the most common size
+
+                # transforms.Lambda(lambda x: nn.functional.interpolate(x, (240, 320))),
+                transforms.Lambda(lambda x: nn.functional.interpolate(x, (config.FRAME_SIZE, config.FRAME_SIZE))),
+                transforms.Lambda(lambda x: x.permute(0, 2, 3, 1)),
+                # rgb to bgr
+                transforms.Lambda(lambda x: x[..., [2, 1, 0]]),
+        ])
+
 
         def custom_collate(batch):
             filtered_batch = []
@@ -87,14 +98,23 @@ if __name__ == "__main__":
                 filtered_batch.append((label, video))
             return torch.utils.data.dataloader.default_collate(filtered_batch)
 
-        # ucf_data_dir = 'data/UCF-101/UCF-101'
-        ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
-        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+        
+
+        print('Loading UCF dataset from', ucf_data_dir)
+        
+        # ***TRAIN***
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=True, transform=tfs, num_workers=12, frame_rate=3) # frames_between_clips/frame_rate
+        # ***TRAIN***
+
+        # ***TEST***
+        # test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+        # ***TEST***
+
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
         
     with torch.no_grad():
         for index_list, batch in test_loader:
+            print('index_list', index_list)
             inputs = torch.tensor([], device=device)
             preds = torch.tensor([], device=device)
             is_pred = []
@@ -132,7 +152,8 @@ if __name__ == "__main__":
             if args.save_output:
                 frame_indices = index_list[0]
                 for i, latent in enumerate(all_latents.squeeze(0)):
-                    latent = latent.reshape((1, 4, 8, 8))
+                    # latent = latent.reshape((1, 4, 8, 8))
+                    latent = latent.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
                     img = sd_utils.decode_img_latents(latent)
                     img = np.array(img[0])
                     
@@ -150,7 +171,8 @@ if __name__ == "__main__":
 
             if args.show:
                 for i, latent in enumerate(all_latents.squeeze(0)):
-                    latent = latent.reshape((1, 4, 8, 8))
+                    # latent = latent.reshape((1, 4, 8, 8))
+                    latent = latent.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
                     img = sd_utils.decode_img_latents(latent)
                     img = np.array(img[0])
                     
