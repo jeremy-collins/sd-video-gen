@@ -91,22 +91,18 @@ class Trainer():
             return nn.MSELoss()
         elif use_gdl and not use_mse:
             return self.gradient_difference_loss
-        elif use_mse and use_gdl:
+        elif use_mse and use_gdl and not use_contrastive:
             return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
         elif use_mse and use_gdl and use_contrastive:
             # (tgt sequence length, batch size, input shape)
-            frames_to_predict = self.config.FRAMES_TO_PREDICT
-            batch_size = self.config.BATCH_SIZE
+            frames_to_predict = self.config.FRAMES_TO_PREDICT[0] # TODO: make this work for multiple frames to predict in config
+            batch_size = self.config.BATCH_SIZE[0] # TODO: make this work for multiple batch sizes in config
             feat_height = self.config.FRAME_SIZE // 8
             feat_width = self.config.FRAME_SIZE // 8
-            print('frames_to_predict: ', frames_to_predict)
-            print('batch_size: ', batch_size)
-            print('feat_height: ', feat_height)
-            print('feat_width: ', feat_width)
-            print('temperature: ', temperature)
-            bpnce = BiPatchNCE(frames_to_predict, batch_size, feat_height, feat_width, temperature)
-            # return lambda x, y: BiPatchNCE(num_frames, batch_size, feat_height, feat_width, temperature)
-            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) + lambda_contrastive * bpnce(x.permute(1,0,2).reshape(batch_size, frames_to_predict,4,feat_height, feat_width), y.permute(1,0,2).reshape(batch_size, frames_to_predict,4,feat_height, feat_width))
+            # bpnce = BiPatchNCE(N=batch_size, T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)
+            return lambda x, y: nn.MSELoss()(x, y) \
+                    + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) \
+                    + lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
         else:
             print('Invalid loss function combination')
             return None
@@ -143,7 +139,17 @@ class Trainer():
             # loss = loss_fn(pred[-1], y_expected[-1])
             loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
             # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
+            wandb.log({'mse': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
             # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            wandb.log({'gdl': self.gradient_difference_loss(pred[-1], y_expected[-1])})
+            # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            wandb.log({'contrastive': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
+
+            # contrastive_pred_input = pred[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
+            # contrastive_y_input = y_expected[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
+            # print('contrastive pred shape: ', contrastive_pred_input.shape)
+            # print('contrastive y shape: ', contrastive_y_input.shape)
+            # print('contrastive: ', BiPatchNCE(frames_to_predict, self.config.BATCH_SIZE[0], self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8, 0.07)(pred[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device), y_expected[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)).to(self.device))
 
             # checking decoding
             # self.check_decoding(pred[0, -1], 'pred', fullscreen=True)
@@ -308,8 +314,8 @@ def main():
     # scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
     scheduler = None
     # loss_fn = nn.MSELoss()
-    loss_fn = trainer.criterion(use_mse, use_gdl, lambda_gdl, alpha, use_contrastive)  # , temperature)
-    
+    loss_fn = trainer.criterion(use_mse=use_mse, use_gdl=use_gdl, lambda_gdl=lambda_gdl, alpha=alpha, use_contrastive=use_contrastive)  # , temperature)
+                #   def criterion(use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2, use_contrastive=True, temperature=0.07, lambda_contrastive=0.1):
     if 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
             ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'

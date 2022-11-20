@@ -20,12 +20,12 @@ class BiPatchNCE(nn.Module):
         super().__init__()
         
         #mask meaning; 1 for postive pairs, 0 for negative pairs
-        mask = torch.eye(h*w).long()
+        mask = torch.eye(h*w).long() # (h*w, h*w)
         mask = mask.unsqueeze(0).repeat(N*T, 1, 1).requires_grad_(False) #(N*T, h*w, h*w)
         self.register_buffer('mask', mask)
         self.temperature = temperature
 
-    def forward(self, gt_f, pred_f):
+    def forward(self, pred_f, gt_f):
         """
         gt_f: ground truth feature/images, with shape (N, T, C, h, w)
         pred_f: predicted feature/images, with shape (N, T, C, h, w)

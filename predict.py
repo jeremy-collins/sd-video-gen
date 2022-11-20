@@ -41,23 +41,13 @@ def predict(model, input_sequence):
     return pred[0, -1] # return last item in sequence
     
 if __name__ == "__main__":  
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--index', type=str, required=True)
-    # parser.add_argument('--pred_frames', type=int, default=1) # number of frames to predict
-    # parser.add_argument('--show', type=bool, default=False)
-    # parser.add_argument('--folder', type=str, required=True)
-    # parser.add_argument('--name', type=str, default='default')
-    # parser.add_argument('--fullscreen', type=bool, default=False)
-    # parser.add_argument('--dataset', type=str, required=True)
-    # args = parser.parse_args()
-
     config, args = parse_config_args()
     
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # TODO: make config make sense
     model = Transformer(num_tokens=0, dim_model=config.DIM_MODEL[0], num_heads=config.NUM_HEADS[0], num_encoder_layers=config.NUM_ENCODER_LAYERS[0], num_decoder_layers=config.NUM_DECODER_LAYERS[0], dropout_p=config.DROPOUT_P[0]) 
-    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index) + '.pt'))
+    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '.pt'))
     model.eval()
     model = model.to(device)
 
@@ -102,13 +92,15 @@ if __name__ == "__main__":
 
         print('Loading UCF dataset from', ucf_data_dir)
         
-        # ***TRAIN***
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=True, transform=tfs, num_workers=12, frame_rate=3) # frames_between_clips/frame_rate
-        # ***TRAIN***
+        if args.mode == 'train':
+            # ***TRAIN***
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=True, transform=tfs, num_workers=12, frame_rate=3) # frames_between_clips/frame_rate
+            # ***TRAIN***
 
-        # ***TEST***
-        # test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
-        # ***TEST***
+        else:
+            # ***TEST***
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+            # ***TEST***
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
         

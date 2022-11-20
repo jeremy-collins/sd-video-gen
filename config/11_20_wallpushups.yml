@@ -1,6 +1,6 @@
 # General config
 LR: 
- - 0.000005
+ - 0.00001
 BATCH_SIZE: 
  - 16
 EPOCHS: 
@@ -12,13 +12,13 @@ NUM_WORKERS:
 
 # Video config
 FRAMES_PER_CLIP: 
- - 5
+ - 6
 FRAMES_TO_PREDICT: 
  - 3
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
- - 3
+ - 5
 FRAME_SIZE: 128
 
 # Transformer config

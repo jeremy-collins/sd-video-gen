@@ -42,6 +42,7 @@ def parse_config_args():
     parser.add_argument('--save_output', type=bool, default=False)
     parser.add_argument('--index', type=int, default=0) # last part of model name
     parser.add_argument('--denoise', type=bool, default=False) # denoise predictions 
+    parser.add_argument('--mode', type=str, default='') # train for sanity check, test for inference
     
     args = parser.parse_args()
     return load_config(args.config), args
