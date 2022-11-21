@@ -3,3 +3,4 @@ data/
 2D-bouncing/
 wandb/
 __pycache__/
+starter_notebook_to_train_on_colab.ipynb

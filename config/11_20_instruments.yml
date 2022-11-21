@@ -8,7 +8,7 @@ EPOCHS:
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 10
+ - 12
 
 # Video config
 FRAMES_PER_CLIP: 
@@ -18,7 +18,7 @@ FRAMES_TO_PREDICT:
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
- - 3
+ - 5
 FRAME_SIZE: 128
 
 # Transformer config
@@ -44,3 +44,6 @@ ALPHA:
  - 2 # gdl exponent
 USE_CONTRASTIVE: 
  - True
+
+LAMBDA_CONTRASTIVE: 
+ - 0.05

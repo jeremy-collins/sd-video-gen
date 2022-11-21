@@ -111,6 +111,9 @@ class Trainer():
         model = model.to(self.device)
         model.train()
         total_loss = 0
+        mse_loss = 0
+        gdl_loss = 0
+        contrastive_loss = 0
             
         for i, (index_list, batch) in enumerate(tqdm(dataloader)):
             # print('batch shape: ', batch.shape)
@@ -138,12 +141,12 @@ class Trainer():
             
             # loss = loss_fn(pred[-1], y_expected[-1])
             loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
-            # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
-            wandb.log({'mse': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
-            # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
-            wandb.log({'gdl': self.gradient_difference_loss(pred[-1], y_expected[-1])})
-            # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
-            wandb.log({'contrastive': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
+            # # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
+            # wandb.log({'mse_train': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
+            # # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            # wandb.log({'gdl_train': self.gradient_difference_loss(pred[-1], y_expected[-1])})
+            # # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            # wandb.log({'contrastive_train': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
 
             # contrastive_pred_input = pred[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
             # contrastive_y_input = y_expected[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
@@ -159,17 +162,32 @@ class Trainer():
             loss.backward()
             opt.step()
             # scheduler.step()
+
+            mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+            gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
         
+            mse_loss += mse
+            gdl_loss += gdl
+            contrastive_loss += loss.detach().item() - mse - gdl
+
             total_loss += loss.detach().item()
 
         train_loss = total_loss / len(dataloader)
         wandb.log({'train_loss': train_loss})
+
+        wandb.log({'mse_train': mse_loss / len(dataloader)})
+        wandb.log({'gdl_train': gdl_loss / len(dataloader)})
+        wandb.log({'contrastive_train': contrastive_loss / len(dataloader)})
             
         return train_loss
 
     def validation_loop(self, model, loss_fn, dataloader, frames_to_predict):  
         model.eval()
         total_loss = 0
+        mse_loss = 0
+        gdl_loss = 0
+        contrastive_loss = 0
+
         with torch.no_grad():
             for j, (index_list, batch) in enumerate(tqdm(dataloader)):
                 # turning batch of images into a batch of embeddings
@@ -197,14 +215,32 @@ class Trainer():
                 # loss = loss_fn(pred[-1], y_expected[-1])
                 loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
 
+                #  # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
+                # wandb.log({'mse_val': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
+                # # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
+                # wandb.log({'gdl_val': self.gradient_difference_loss(pred[-1], y_expected[-1])})
+                # # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
+                # wandb.log({'contrastive_val': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
+
                 # checking decoding
                 # self.check_decoding(pred[0, -1], 'pred')
                 # self.check_decoding(y_expected[0, -1], 'gt')
 
+                mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
+            
+                mse_loss += mse
+                gdl_loss += gdl
+                contrastive_loss += loss.detach().item() - mse - gdl
+
                 total_loss += loss.detach().item()
 
-            val_loss = total_loss / len(dataloader)
-            wandb.log({'val_loss': val_loss})
+        val_loss = total_loss / len(dataloader)
+        wandb.log({'val_loss': val_loss})
+        
+        wandb.log({'mse_val': mse_loss / len(dataloader)})
+        wandb.log({'gdl_val': gdl_loss / len(dataloader)})
+        wandb.log({'contrastive_val': contrastive_loss / len(dataloader)})
             
         return val_loss
 
@@ -300,6 +336,7 @@ def main():
     frame_size = wandb.config.frame_size
     fps = wandb.config.frame_rate
     use_contrastive = wandb.config.use_contrastive
+    lambda_contrastive = wandb.config.lambda_contrastive
 
     trainer = Trainer()
     model = Transformer(num_tokens=0, dim_model=dim_model, num_heads=num_heads, num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers, dropout_p=dropout_p)
@@ -314,8 +351,8 @@ def main():
     # scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
     scheduler = None
     # loss_fn = nn.MSELoss()
-    loss_fn = trainer.criterion(use_mse=use_mse, use_gdl=use_gdl, lambda_gdl=lambda_gdl, alpha=alpha, use_contrastive=use_contrastive)  # , temperature)
-                #   def criterion(use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2, use_contrastive=True, temperature=0.07, lambda_contrastive=0.1):
+    loss_fn = trainer.criterion(use_mse=use_mse, use_gdl=use_gdl, lambda_gdl=lambda_gdl, alpha=alpha, use_contrastive=use_contrastive, lambda_contrastive=lambda_contrastive)  # , temperature)
+
     if 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
             ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
@@ -488,6 +525,9 @@ if __name__ == '__main__':
         },
         'use_contrastive': {
             'values': config.USE_CONTRASTIVE
+        },
+        'lambda_contrastive': {
+            'values': config.LAMBDA_CONTRASTIVE
         },
     }
     sweep_config['parameters'] = parameters_dict

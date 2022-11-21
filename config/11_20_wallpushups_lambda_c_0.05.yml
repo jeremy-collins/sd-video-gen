@@ -44,3 +44,6 @@ ALPHA:
  - 2 # gdl exponent
 USE_CONTRASTIVE: 
  - True
+
+LAMBDA_CONTRASTIVE: 
+ - 0.05
