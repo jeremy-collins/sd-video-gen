@@ -1,29 +1,31 @@
+# RESUMED FROM 11_20_ucf_0_test
+
 # General config
 LR: 
  - 0.000005
 BATCH_SIZE: 
- - 16
+ - 8
 EPOCHS: 
  - 1000000
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 6
+ - 12
 
 # Video config
 FRAMES_PER_CLIP: 
  - 5
 FRAMES_TO_PREDICT: 
- - 3
+ - 5
 STRIDE: 
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
- - 5
+ - 3
 FRAME_SIZE: 128
 
 # Transformer config
 DIM_MODEL: 
- - 1024
+ - 2048
 NUM_HEADS: 
  - 8
 NUM_ENCODER_LAYERS: 
@@ -39,11 +41,10 @@ USE_MSE:
 USE_GDL: 
  - True
 LAMBDA_GDL: 
- - True
+ - 1
 ALPHA: 
- - 2 # gdl exponent
+ - 1 # gdl exponent
 USE_CONTRASTIVE: 
  - True
-
 LAMBDA_CONTRASTIVE: 
- - 0.05
+ - 0.025
