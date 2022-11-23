@@ -27,5 +27,6 @@
   - `--fullscreen True` to view the frames as fullscreen images .
   - `--mode <Train/Test>` to evaluate on the corresponding partition of the dataset.
   - `--denoise True` to denoise the generated frames using the pre-trained Stable Diffusion U-Net.
+  - `--denoise_start_step <int between 0 and 50>` to control how much the generated frames are denoised. 0 = image from scratch, 50 = no denoising
   - `--save_output True` to save ground truth and generated frames to your files.
   
