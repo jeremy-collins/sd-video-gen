@@ -240,7 +240,7 @@ class SDUtils():
       start_timesteps = start_timestep.repeat(latents.shape[0]).long()
 
       noise = torch.randn_like(latents)
-      latents = scheduler.add_noise(latents, noise, start_timesteps)
+      # latents = scheduler.add_noise(latents, noise, start_timesteps) # TODO: UNCOMMENT THIS IF YOU WANT TO ADD NOISE TO THE LATENTS
 
     latent_hist = [latents]
     with autocast('cuda'):

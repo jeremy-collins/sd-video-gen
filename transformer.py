@@ -79,13 +79,6 @@ class Transformer(nn.Module):
         # mask = self.transformer.generate_square_subsequent_mask(1)
         
         # EX for size=5:
-        # [[0.,   0.,   0.,   0.,   -inf.],
-        #  [0.,   0.,   0.,   0.,   0.],
-        #  [0.,   0.,   0.,   0.,   0.],
-        #  [0.,   0.,   0.,   0.,   0.],
-        #  [0.,   0.,   0.,   0.,   0.]]
-        
-        # EX for size=5:
         # [[0., -inf, -inf, -inf, -inf],
         #  [0.,   0., -inf, -inf, -inf],
         #  [0.,   0.,   0., -inf, -inf],

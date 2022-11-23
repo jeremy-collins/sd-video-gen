@@ -47,8 +47,7 @@ class Trainer():
         # self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
         self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
         # self.SOS_token = torch.ones((1, 4, 8, 8), dtype=torch.float32, device=self.device) * 2
-        # auth_token = os.environ['HF_TOKEN']
-    
+
     def check_decoding(self, latent, label='img', fullscreen=False):
         print('latent shape: ', latent.shape)
         latent = latent.reshape((1, 4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)) # reshaping to SD latent shape
@@ -67,12 +66,12 @@ class Trainer():
         # (5, 8, 1024) -> (5, 8, 4, 16, 16)
         frameX = torch.reshape(frameX_flattened, (frameX_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
         frameY = torch.reshape(frameY_flattened, (frameY_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
-        vertical_gradient_X = frameX[:, :, :, 1:, :] - frameX[:, :, :, :-1, :]
-        vertical_gradient_Y = frameY[:, :, :, 1:, :] - frameY[:, :, :, :-1, :]
+        vertical_gradient_X = frameX[:, :, 1:, :] - frameX[:, :, :-1, :]
+        vertical_gradient_Y = frameY[:, :, 1:, :] - frameY[:, :, :-1, :]
         vertical_gradient_loss = torch.abs(torch.abs(vertical_gradient_X) - torch.abs(vertical_gradient_Y))
 
-        horizontal_gradient_X = frameX[:, :, :, :, 1:] - frameX[:, :, :, :, :-1]
-        horizontal_gradient_Y = frameY[:, :, :, :, 1:] - frameY[:, :, :, :, :-1]
+        horizontal_gradient_X = frameX[:, :, :, 1:] - frameX[:, :, :, :-1]
+        horizontal_gradient_Y = frameY[:, :, :, 1:] - frameY[:, :, :, :-1]
         horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
 
         gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
@@ -116,47 +115,56 @@ class Trainer():
         contrastive_loss = 0
             
         for i, (index_list, batch) in enumerate(tqdm(dataloader)):
-            # print('batch shape: ', batch.shape)
             # turning batch of images into a batch of embeddings
-            new_batch = self.sd_utils.encode_batch(batch, use_sos=True) # (batch size, frames_per_clip, 3, 128, 128) -> (batch size, frames_per_clip, 1024)
+            # new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
+            new_batch = self.sd_utils.encode_batch(batch, use_sos=False)
             new_batch = torch.tensor(new_batch).to(self.device)
 
             # shift the tgt by one so we always predict the next embedding
-            y_input = new_batch[:,:-1] # all but last 
+            # y_input = new_batch[:,:-1] # all but last 
+            y_input = new_batch[:,:-frames_to_predict] # (frame_1, ... frame_(frames_per_clip))
 
             # y_input = y # because we don't have an EOS token
-            y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
+            # y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
+            y_expected = new_batch[:,-frames_to_predict:] # predicting only the future frames
             
             # y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1) # merging h w and c dims --> moved to encode_batch
-            y_expected = y_expected.permute(1, 0, 2)
+            # y_expected = y_expected.permute(1, 0, 2)
             
-            # Get mask to mask out the future frames
             sequence_length = y_input.size(1)
-            tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
+            # Get mask to mask out the future frames
+            # tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
+            tgt_mask = None # we don't need a mask because we always want to see all input frames
+
+            print('y_input shape: ', y_input.shape)
+            print('y_expected shape: ', y_expected.shape)
         
             # X shape is (batch_size, src sequence length, input shape)
             # y_input shape is (batch_size, tgt sequence length, input shape)
-            pred = model(new_batch, y_input, tgt_mask)
+            pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
             # output is (tgt sequence length, batch size, input shape)
-            
-            # loss = loss_fn(pred[-1], y_expected[-1])
-            loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
-            # # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
-            # wandb.log({'mse_train': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
-            # # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
-            # wandb.log({'gdl_train': self.gradient_difference_loss(pred[-1], y_expected[-1])})
-            # # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
-            # wandb.log({'contrastive_train': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
+            pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
 
-            # contrastive_pred_input = pred[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
-            # contrastive_y_input = y_expected[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)
-            # print('contrastive pred shape: ', contrastive_pred_input.shape)
-            # print('contrastive y shape: ', contrastive_y_input.shape)
-            # print('contrastive: ', BiPatchNCE(frames_to_predict, self.config.BATCH_SIZE[0], self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8, 0.07)(pred[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device), y_expected[-frames_to_predict:].permute(1,0,2).reshape((self.config.BATCH_SIZE[0], frames_to_predict,4, self.config.FRAME_SIZE // 8, self.config.FRAME_SIZE // 8)).to(self.device)).to(self.device))
+            # loss = loss_fn(pred[-1], y_expected[-1])
+            # loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+            print('pred shape: ', pred.shape)
+            print('y_expected shape: ', y_expected.shape)
+            loss = loss_fn(pred, y_expected)
+
+            
+
+            #  # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
+            # wandb.log({'mse_val': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
+            # # print('gdl: ', self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            # wandb.log({'gdl_val': self.gradient_difference_loss(pred[-1], y_expected[-1])})
+            # # print('contrastive: ', loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1]))
+            # wandb.log({'contrastive_val': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
 
             # checking decoding
-            # self.check_decoding(pred[0, -1], 'pred', fullscreen=True)
-            # self.check_decoding(y_expected[0, -1], 'gt', fullscreen=True)
+            # for i in range(0, frames_to_predict):
+            #     self.check_decoding(y_input[-1, i], 'input')
+            # for i in range(0, frames_to_predict):
+            #     self.check_decoding(y_expected[-1, i], 'gt')
 
             opt.zero_grad()
             loss.backward()
@@ -192,29 +200,42 @@ class Trainer():
         with torch.no_grad():
             for j, (index_list, batch) in enumerate(tqdm(dataloader)):
                 # turning batch of images into a batch of embeddings
-                new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
+                # new_batch = self.sd_utils.encode_batch(batch, use_sos=True)
+                new_batch = self.sd_utils.encode_batch(batch, use_sos=False)
                 new_batch = torch.tensor(new_batch).to(self.device)
 
                 # shift the tgt by one so we always predict the next embedding
-                y_input = new_batch[:,:-1] # all but last 
+                # y_input = new_batch[:,:-1] # all but last 
+                y_input = new_batch[:,:-frames_to_predict] # (frame_1, ... frame_(frames_per_clip))
 
                 # y_input = y # because we don't have an EOS token
-                y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
+                # y_expected = new_batch[:,1:] # all but first because the prediction is shifted by one
+                y_expected = new_batch[:,-frames_to_predict:] # predicting only the future frames
                 
                 # y_expected = y_expected.reshape(y_expected.shape[0], y_expected.shape[1], -1) # merging h w and c dims --> moved to encode_batch
-                y_expected = y_expected.permute(1, 0, 2)
+                # y_expected = y_expected.permute(1, 0, 2)
                 
-                # Get mask to mask out the future frames
                 sequence_length = y_input.size(1)
-                tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
+                # Get mask to mask out the future frames
+                # tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
+                tgt_mask = None # we don't need a mask because we always want to see all input frames
+
+                print('y_input shape: ', y_input.shape)
+                print('y_expected shape: ', y_expected.shape)
             
                 # X shape is (batch_size, src sequence length, input shape)
                 # y_input shape is (batch_size, tgt sequence length, input shape)
-                pred = model(new_batch, y_input, tgt_mask)
+                pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
                 # output is (tgt sequence length, batch size, input shape)
-                
+                pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
+
                 # loss = loss_fn(pred[-1], y_expected[-1])
-                loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+                # loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
+                print('pred shape: ', pred.shape)
+                print('y_expected shape: ', y_expected.shape)
+                loss = loss_fn(pred, y_expected)
+
+                
 
                 #  # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
                 # wandb.log({'mse_val': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})
@@ -224,8 +245,10 @@ class Trainer():
                 # wandb.log({'contrastive_val': loss - torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]) - self.gradient_difference_loss(pred[-1], y_expected[-1])})
 
                 # checking decoding
-                # self.check_decoding(pred[0, -1], 'pred')
-                # self.check_decoding(y_expected[0, -1], 'gt')
+                # for i in range(0, frames_to_predict):
+                #     self.check_decoding(y_input[-1, i], 'input')
+                # for i in range(0, frames_to_predict):
+                #     self.check_decoding(y_expected[-1, i], 'gt')
 
                 mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
                 gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
@@ -392,14 +415,16 @@ def main():
         print('Loading UCF dataset from', ucf_data_dir)
 
 
-        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=True, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
+        # train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=True, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
+        train_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=(frames_per_clip + frames_to_predict), train=True, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
         print("Number of training samples: ", len(train_dataset))
 
         train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, # shuffle=True
                                                 collate_fn=trainer.custom_collate, num_workers=num_workers, pin_memory=True, sampler=train_sampler)
         # create test loader (allowing batches and other extras)
-        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=False, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
+        # test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=frames_per_clip, train=False, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
+        test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=(frames_per_clip + frames_to_predict), train=False, transform=tfs, num_workers=num_workers, frame_rate=fps) # frames_between_clips/frame_rate
         print("Number of test samples: ", len(test_dataset))
 
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))

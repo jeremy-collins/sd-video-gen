@@ -43,6 +43,7 @@ def parse_config_args():
     parser.add_argument('--index', type=int, default=0) # last part of model name
     parser.add_argument('--denoise', type=bool, default=False) # denoise predictions 
     parser.add_argument('--mode', type=str, default='') # train for sanity check, test for inference
+    parser.add_argument('--denoise_start_step', type=int, default=40) # step to start denoising out of 50 (0 = from scratch, 50 = no denoising)
     
     args = parser.parse_args()
     return load_config(args.config), args

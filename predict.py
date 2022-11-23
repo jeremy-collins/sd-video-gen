@@ -139,20 +139,42 @@ if __name__ == "__main__":
                     print('denoising predicted frame...')
                     print('pred.shape:', pred.shape)
                     uncond_text_embeddings = sd_utils.encode_text([''])
-                    denoise_pred = pred.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
-                    # interpolate to 64x64
-                    denoise_pred = nn.functional.interpolate(denoise_pred, (64, 64), mode='bilinear') # resize to latents corresponding to 512x512 image
-                    # denoise_pred = sd_utils.denoise_img_latents(text_embeddings=uncond_text_embeddings, height=config.FRAME_SIZE, width=config.FRAME_SIZE, latents=denoise_pred, num_inference_steps=100, guidance_scale=0)
-                    denoise_pred = sd_utils.gen_i2i_latents(uncond_text_embeddings, height=config.FRAME_SIZE, width=config.FRAME_SIZE,
-                                    num_inference_steps=50, guidance_scale=0, latents=denoise_pred,
-                                    return_all_latents=False, start_step=48)
-                    denoised_img = sd_utils.decode_img_latents(denoise_pred)
-                    denoised_img = torch.tensor(denoised_img, device=device) # .permute(0, 3, 1, 2)
+                    noisy_pred = pred.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8)) # unflattening pred latent
+                    print('denoise_pred.shape:', noisy_pred.shape)
+
+                    # decoding pred
+                    noisy_img = sd_utils.decode_img_latents(noisy_pred) # shape (1, 3, FRAME_SIZE, FRAME_SIZE) # decoding into image
+                    noisy_img = torch.tensor(noisy_img, device=device)
+                    print('noisy_img.shape:', noisy_img.shape)
+
+                    # upscaling image
+                    noisy_img = nn.functional.interpolate(noisy_img.permute(0, 3, 1, 2), (512, 512)) # upscaling predicted image to FRAME_SIZE
+                    noisy_img = noisy_img.permute(0, 2, 3, 1).unsqueeze(0)
+                    print('upscaled noisy_img.shape:', noisy_img.shape)
+
+                    # encoding upscaled image
+                    resized_latents = sd_utils.encode_batch(noisy_img, use_sos=False) # encoding interpolated image
+                    resized_latents = resized_latents.reshape((1, 4, 512//8, 512//8)) # reshaping to (1, 4, 512, 512)
+                    print('resized_latents.shape:', resized_latents.shape)
+
+                    # denoising
+                    denoised_latents = sd_utils.gen_i2i_latents(uncond_text_embeddings, height=512, width=512, # denoising interpolated image
+                                    num_inference_steps=50, guidance_scale=0, latents=resized_latents,
+                                    return_all_latents=False, start_step=args.denoise_start_step)
+
+                    # decoding denoised image
+                    denoised_img = sd_utils.decode_img_latents(denoised_latents) # shape (1, 3, 512, 512) # decoding into large image
+                    denoised_img = torch.tensor(denoised_img, device=device)
                     print('denoised_img.shape:', denoised_img.shape)
-                    denoised_img = nn.functional.interpolate(denoised_img.permute(0, 3, 1, 2), (config.FRAME_SIZE, config.FRAME_SIZE))
+
+                    # downscaling denoised image
+                    denoised_img = nn.functional.interpolate(denoised_img.permute(0, 3, 1, 2), (config.FRAME_SIZE, config.FRAME_SIZE)) # shrinking denoised image back to FRAME_SIZE
                     denoised_img = denoised_img.permute(0, 2, 3, 1).unsqueeze(0)
-                    pred = sd_utils.encode_batch(denoised_img, use_sos=False)
-                    print('pred.shape:', pred.shape)
+                    print('shrunken denoised_img.shape:', denoised_img.shape)
+
+                    # encoding shrunken denoised image
+                    pred = sd_utils.encode_batch(denoised_img, use_sos=False) # encoding shrunken denoised image
+                    print('denoised_latents.shape:', denoised_latents.shape)
                     pred = pred.flatten()
 
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
