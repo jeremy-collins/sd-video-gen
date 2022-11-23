@@ -66,12 +66,12 @@ class Trainer():
         # (5, 8, 1024) -> (5, 8, 4, 16, 16)
         frameX = torch.reshape(frameX_flattened, (frameX_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
         frameY = torch.reshape(frameY_flattened, (frameY_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
-        vertical_gradient_X = frameX[:, :, 1:, :] - frameX[:, :, :-1, :]
-        vertical_gradient_Y = frameY[:, :, 1:, :] - frameY[:, :, :-1, :]
+        vertical_gradient_X = frameX[:, :, :, 1:, :] - frameX[:, :, :, :-1, :]
+        vertical_gradient_Y = frameY[:, :, :, 1:, :] - frameY[:, :, :, :-1, :]
         vertical_gradient_loss = torch.abs(torch.abs(vertical_gradient_X) - torch.abs(vertical_gradient_Y))
 
-        horizontal_gradient_X = frameX[:, :, :, 1:] - frameX[:, :, :, :-1]
-        horizontal_gradient_Y = frameY[:, :, :, 1:] - frameY[:, :, :, :-1]
+        horizontal_gradient_X = frameX[:, :, :, :, 1:] - frameX[:, :, :, :, :-1]
+        horizontal_gradient_Y = frameY[:, :, :, :, 1:] - frameY[:, :, :, :, :-1]
         horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
 
         gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
@@ -135,9 +135,6 @@ class Trainer():
             # Get mask to mask out the future frames
             # tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
             tgt_mask = None # we don't need a mask because we always want to see all input frames
-
-            print('y_input shape: ', y_input.shape)
-            print('y_expected shape: ', y_expected.shape)
         
             # X shape is (batch_size, src sequence length, input shape)
             # y_input shape is (batch_size, tgt sequence length, input shape)
@@ -147,8 +144,7 @@ class Trainer():
 
             # loss = loss_fn(pred[-1], y_expected[-1])
             # loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
-            print('pred shape: ', pred.shape)
-            print('y_expected shape: ', y_expected.shape)
+
             loss = loss_fn(pred, y_expected)
 
             
@@ -219,9 +215,6 @@ class Trainer():
                 # Get mask to mask out the future frames
                 # tgt_mask = model.get_tgt_mask(sequence_length).to(self.device)
                 tgt_mask = None # we don't need a mask because we always want to see all input frames
-
-                print('y_input shape: ', y_input.shape)
-                print('y_expected shape: ', y_expected.shape)
             
                 # X shape is (batch_size, src sequence length, input shape)
                 # y_input shape is (batch_size, tgt sequence length, input shape)
@@ -231,8 +224,7 @@ class Trainer():
 
                 # loss = loss_fn(pred[-1], y_expected[-1])
                 # loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
-                print('pred shape: ', pred.shape)
-                print('y_expected shape: ', y_expected.shape)
+
                 loss = loss_fn(pred, y_expected)
 
                 
