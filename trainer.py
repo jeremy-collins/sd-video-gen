@@ -67,10 +67,12 @@ class Trainer():
         cv2.imshow(label, reconstruction)
         cv2.waitKey(0)
 
-    def gradient_difference_loss(self, frameX_flattened, frameY_flattened, alpha=2):
-        vert_hori_dim = int(np.sqrt(frameX_flattened.shape[1]/4))
-        frameX = torch.reshape(frameX_flattened, (frameX_flattened.shape[0], 4,vert_hori_dim,vert_hori_dim))
-        frameY = torch.reshape(frameY_flattened, (frameY_flattened.shape[0], 4,vert_hori_dim,vert_hori_dim))
+    def gradient_difference_loss(self, frameX_flattened, frameY_flattened, alpha=1):
+        vert_hori_dim = int(np.sqrt(frameX_flattened.shape[-1] // 4))
+        # vert_hori_dim = int(np.sqrt(frameX_flattened.shape[1]/4))
+        # (5, 8, 1024) -> (5, 8, 4, 16, 16)
+        frameX = torch.reshape(frameX_flattened, (frameX_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
+        frameY = torch.reshape(frameY_flattened, (frameY_flattened.shape[0], frameX_flattened.shape[1], 4, vert_hori_dim,vert_hori_dim))
         vertical_gradient_X = frameX[:, :, 1:, :] - frameX[:, :, :-1, :]
         vertical_gradient_Y = frameY[:, :, 1:, :] - frameY[:, :, :-1, :]
         vertical_gradient_loss = torch.abs(torch.abs(vertical_gradient_X) - torch.abs(vertical_gradient_Y))
@@ -80,7 +82,7 @@ class Trainer():
         horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
 
         gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
-        gdloss = gdloss / (frameX_flattened.shape[0] * 4 * vert_hori_dim * vert_hori_dim) # normalizing
+        gdloss = gdloss / (frameX_flattened.numel()) # * 2) # normalizing
         return gdloss
 
     # def contrastive_loss(num_frames, batch_size, feat_height, feat_width, temperature):
@@ -92,7 +94,8 @@ class Trainer():
         elif use_gdl and not use_mse:
             return self.gradient_difference_loss
         elif use_mse and use_gdl and not use_contrastive:
-            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
+            # return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
+            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x, y, alpha)
         elif use_mse and use_gdl and use_contrastive:
             # (tgt sequence length, batch size, input shape)
             frames_to_predict = self.config.FRAMES_TO_PREDICT[0] # TODO: make this work for multiple frames to predict in config
@@ -100,8 +103,11 @@ class Trainer():
             feat_height = self.config.FRAME_SIZE // 8
             feat_width = self.config.FRAME_SIZE // 8
             # bpnce = BiPatchNCE(N=batch_size, T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)
+        #     return lambda x, y: nn.MSELoss()(x, y) \
+        #             + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) \
+        #             + lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
             return lambda x, y: nn.MSELoss()(x, y) \
-                    + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) \
+                    + lambda_gdl * self.gradient_difference_loss(x, y, alpha) \
                     + lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
         else:
             print('Invalid loss function combination')
@@ -164,7 +170,8 @@ class Trainer():
             # scheduler.step()
 
             mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-            gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
+            # gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
+            gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
         
             mse_loss += mse
             gdl_loss += gdl
@@ -227,7 +234,7 @@ class Trainer():
                 # self.check_decoding(y_expected[0, -1], 'gt')
 
                 mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-                gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
+                gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
             
                 mse_loss += mse
                 gdl_loss += gdl
