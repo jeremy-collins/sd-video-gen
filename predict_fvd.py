@@ -11,6 +11,8 @@ import argparse
 from torchvision.datasets import UCF101
 import torchvision.transforms as transforms
 from config import parse_config_args
+from torch.utils.data import DataLoader, RandomSampler
+import fvd
 
 def predict(model, input_sequence):
     model.eval()
@@ -58,17 +60,17 @@ if __name__ == "__main__":
 
     elif 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-wallpushups'
         elif args.dataset.endswith('workout'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-workout'
         elif args.dataset.endswith('instruments'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-instruments'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-instruments'
         elif args.dataset == 'ucf':
-            ucf_data_dir = 'data/UCF-101/UCF-101'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101'
         else:
             raise ValueError('Invalid dataset name')
             
-        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+        ucf_label_dir = '../dataset/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
         tfs = transforms.Compose([
                 # scale in [0, 1] of type float
@@ -97,15 +99,23 @@ if __name__ == "__main__":
         
         if args.mode == 'train':
             # ***TRAIN***
-            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=True, transform=tfs, num_workers=12, frame_rate=3) # frames_between_clips/frame_rate
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=True, transform=tfs, num_workers=config.NUM_WORKERS[0], frame_rate=3) # frames_between_clips/frame_rate
             # ***TRAIN***
 
         else:
             # ***TEST***
-            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=9, train=False, transform=tfs, num_workers=config.NUM_WORKERS[0]) # frames_between_clips/frame_rate
             # ***TEST***
 
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
+        print('epoch', config.EPOCH_RATIO[0])
+        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * config.EPOCH_RATIO[0]))#config.EPOCH_RATIO[0]))
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, sampler=test_sampler, collate_fn=custom_collate, num_workers=config.NUM_WORKERS[0], pin_memory=True)
+
+    dectector_for_fvd = fvd.load_detector()
+    stats_groundtruth = fvd.get_FeatureStats()
+    stats_predicted = fvd.get_FeatureStats()
+
+    dummy = True
         
     with torch.no_grad():
         for index_list, batch in test_loader:
@@ -131,13 +141,24 @@ if __name__ == "__main__":
                         continue # SOS token
                 else:
                     inputs = torch.cat((inputs, input.unsqueeze(0).unsqueeze(0)), dim=1)
-                    print('inputs shape: ', inputs.shape)
+                    #print('inputs shape: ', inputs.shape)
+
+            trans224 = transforms.Compose([transforms.Lambda(lambda x: x.permute(0, 1, 4, 2, 3)),
+                                            transforms.Lambda(lambda x: x.squeeze(0)), 
+                                            transforms.Resize(224), 
+                                            transforms.Lambda(lambda x: x.unsqueeze(0)),
+                                            transforms.Lambda(lambda x: x.permute(0, 1, 3, 4, 2)),
+                                            ])
+            groundtruth_frames = trans224(batch)
+            #print('groundtruth_frames', groundtruth_frames.shape)
+            fvd.update_stats_for_sequence(dectector_for_fvd, stats_groundtruth, groundtruth_frames)
+
 
             for iteration in range(args.pred_frames):
                 pred = predict(model, X)
                 if args.denoise:
-                    print('denoising predicted frame...')
-                    print('pred.shape:', pred.shape)
+                    #print('denoising predicted frame...')
+                    #print('pred.shape:', pred.shape)
                     uncond_text_embeddings = sd_utils.encode_text([''])
                     denoise_pred = pred.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
                     # interpolate to 64x64
@@ -148,27 +169,27 @@ if __name__ == "__main__":
                                     return_all_latents=False, start_step=48)
                     denoised_img = sd_utils.decode_img_latents(denoise_pred)
                     denoised_img = torch.tensor(denoised_img, device=device) # .permute(0, 3, 1, 2)
-                    print('denoised_img.shape:', denoised_img.shape)
+                    #print('denoised_img.shape:', denoised_img.shape)
                     denoised_img = nn.functional.interpolate(denoised_img.permute(0, 3, 1, 2), (config.FRAME_SIZE, config.FRAME_SIZE))
                     denoised_img = denoised_img.permute(0, 2, 3, 1).unsqueeze(0)
                     pred = sd_utils.encode_batch(denoised_img, use_sos=False)
-                    print('pred.shape:', pred.shape)
+                    #print('pred.shape:', pred.shape)
                     pred = pred.flatten()
 
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
                 preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
-                print('preds shape: ', pred.shape)
+                #print('preds shape: ', pred.shape)
 
                 
  
                 all_latents = torch.cat([inputs[:,:-1], preds], dim=1) # remove last input frame and add preds
                 is_pred = [False] * (inputs.shape[1] - 1) + [True] * preds.shape[1]
-                print('all_latents shape: ', all_latents.shape)
+                #print('all_latents shape: ', all_latents.shape)
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
-                print('X after modifying: ', X.shape)
+                #print('X after modifying: ', X.shape)
 
                 
-
+            predicted_frames = []
             if args.save_output:
                 frame_indices = index_list[0]
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -179,15 +200,25 @@ if __name__ == "__main__":
                     
                     if is_pred[i]:
                         # add a red border to the predicted frames
-                        # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
+                        #img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
                         # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
-                        cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
+
+                        pr_val = cv2.imwrite(os.path.join('outputs', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(index_list.item()) + '_' + str(i) + '.png'), img)
+                        #if(dummy or not pr_val):
+                            #print(os.path.join('outputs', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(index_list.item()) + '_' + str(i) + '.png'))
+                            #dummy=False
+
+                        predicted_frames.append(img)
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
                     # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
                     # cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     # cv2.imshow('frame', img)
                     # cv2.waitKey(0)
+                predicted_frames = torch.from_numpy(np.array(predicted_frames).reshape((1,args.pred_frames,config.FRAME_SIZE, config.FRAME_SIZE, 3)))
+                #print('predicted_frames', predicted_frames.shape)
+                predicted_frames = trans224(predicted_frames)
+                fvd.update_stats_for_sequence(dectector_for_fvd, stats_predicted, predicted_frames)
 
             if args.show:
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -206,7 +237,9 @@ if __name__ == "__main__":
                         cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
-
+                    
+        fvd_score = fvd.compute_fvd(stats_predicted, stats_groundtruth)
+        print('FVD : ', fvd_score)
 
     #     # counting number of files in ./checkpoints
     #     folder_index = len(os.listdir('./images'))   
