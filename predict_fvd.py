@@ -60,17 +60,17 @@ if __name__ == "__main__":
 
     elif 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
-            ucf_data_dir = '../dataset/UCF-101/UCF-101-wallpushups'
+            ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
         elif args.dataset.endswith('workout'):
-            ucf_data_dir = '../dataset/UCF-101/UCF-101-workout'
+            ucf_data_dir = 'data/UCF-101/UCF-101-workout'
         elif args.dataset.endswith('instruments'):
-            ucf_data_dir = '../dataset/UCF-101/UCF-101-instruments'
+            ucf_data_dir = 'data/UCF-101/UCF-101-instruments'
         elif args.dataset == 'ucf':
-            ucf_data_dir = '../dataset/UCF-101/UCF-101'
+            ucf_data_dir = 'data/UCF-101/UCF-101'
         else:
             raise ValueError('Invalid dataset name')
             
-        ucf_label_dir = '../dataset/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
         tfs = transforms.Compose([
                 # scale in [0, 1] of type float
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=9, train=False, transform=tfs, num_workers=config.NUM_WORKERS[0]) # frames_between_clips/frame_rate
             # ***TEST***
 
-        print('epoch', config.EPOCH_RATIO[0])
+        #print('epoch', config.EPOCH_RATIO[0])
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * config.EPOCH_RATIO[0]))#config.EPOCH_RATIO[0]))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, sampler=test_sampler, collate_fn=custom_collate, num_workers=config.NUM_WORKERS[0], pin_memory=True)
 
@@ -118,8 +118,9 @@ if __name__ == "__main__":
     dummy = True
         
     with torch.no_grad():
-        for index_list, batch in test_loader:
-            print('index_list', index_list)
+        for (ind, (index_list, batch)) in enumerate(test_loader):
+            print(ind)
+            #print('index_list', index_list)
             inputs = torch.tensor([], device=device)
             preds = torch.tensor([], device=device)
             is_pred = []
@@ -203,12 +204,14 @@ if __name__ == "__main__":
                         #img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
                         # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
 
-                        pr_val = cv2.imwrite(os.path.join('outputs', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(index_list.item()) + '_' + str(i) + '.png'), img)
+                        pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(ind) + '_' + str(i) + '.png'), img)
                         #if(dummy or not pr_val):
                             #print(os.path.join('outputs', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(index_list.item()) + '_' + str(i) + '.png'))
                             #dummy=False
 
                         predicted_frames.append(img)
+                    else:
+                        pr_val = cv2.imwrite(os.path.join('outputs_real', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(ind) + '_' + str(i) + '.png'), img)
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
                     # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
