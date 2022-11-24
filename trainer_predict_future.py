@@ -47,6 +47,7 @@ class Trainer():
         # self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
         self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
         # self.SOS_token = torch.ones((1, 4, 8, 8), dtype=torch.float32, device=self.device) * 2
+        # self.learned_tgt = TODO: add learned target of shape (1, config.FRAMES_TO_PREDICT, self.config.FRAME_SIZE ** 2 // 64 * 4)
 
     def check_decoding(self, latent, label='img', fullscreen=False):
         print('latent shape: ', latent.shape)
