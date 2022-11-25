@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, RandomSampler
 import math
 import numpy as np
-from transformer import Transformer
+from transformer_future import Transformer
 import torchvision.transforms as transforms
 from torchvision.datasets import UCF101
 from bouncing_ball_loader import BouncingBall
@@ -47,6 +47,7 @@ class Trainer():
         # self.SOS_token = torch.ones((1, 1, model.dim_model), dtype=torch.float32, device=self.device) * 2
         self.SOS_token = torch.ones((1, 1, self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32, device=self.device) * 2
         # self.SOS_token = torch.ones((1, 4, 8, 8), dtype=torch.float32, device=self.device) * 2
+        # self.learned_tgt = TODO: add learned target of shape (1, config.FRAMES_TO_PREDICT, self.config.FRAME_SIZE ** 2 // 6
 
     def check_decoding(self, latent, label='img', fullscreen=False):
         print('latent shape: ', latent.shape)
@@ -138,7 +139,10 @@ class Trainer():
         
             # X shape is (batch_size, src sequence length, input shape)
             # y_input shape is (batch_size, tgt sequence length, input shape)
-            pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+            # pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+            # repeating model.learned_tgt along the batch dimension
+            learned_tgt = model.learned_tgt.repeat(y_input.shape[0], 1, 1).to(self.device)
+            pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
             # output is (tgt sequence length, batch size, input shape)
             pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
 
@@ -218,7 +222,10 @@ class Trainer():
             
                 # X shape is (batch_size, src sequence length, input shape)
                 # y_input shape is (batch_size, tgt sequence length, input shape)
-                pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+                # pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+                # repeating model.learned_tgt along the batch dimension
+                learned_tgt = model.learned_tgt.repeat(y_input.shape[0], 1, 1)
+                pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
                 # output is (tgt sequence length, batch size, input shape)
                 pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
 
@@ -226,8 +233,6 @@ class Trainer():
                 # loss = loss_fn(pred[-frames_to_predict:], y_expected[-frames_to_predict:])
 
                 loss = loss_fn(pred, y_expected)
-
-                
 
                 #  # print('mse: ', torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]))
                 # wandb.log({'mse_val': torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:])})

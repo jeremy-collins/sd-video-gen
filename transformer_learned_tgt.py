@@ -7,7 +7,6 @@ import numpy as np
 from config import parse_config_args
 
 class Transformer(nn.Module):
-        # setting self.learned_tgt to a parameter so that it can be optimized
     # Constructor
     def __init__(
         self,
@@ -27,6 +26,7 @@ class Transformer(nn.Module):
         # IMAGE SIZE
         self.height = self.config.FRAME_SIZE
         self.width = self.config.FRAME_SIZE
+        self.future_frames = self.config.FRAMES_TO_PREDICT[0]
         self.compression = 8
 
         # LAYERS
@@ -34,7 +34,13 @@ class Transformer(nn.Module):
             dim_model=dim_model, dropout_p=dropout_p, max_len=64
         )
         # self.embedding = nn.Embedding(num_tokens, dim_model)
+        
+        self.query_pos = nn.Parameter(torch.rand(self.future_frames, self.height // self.compression * self.width // self.compression * 4), requires_grad=True)
+        self.init_tgt = torch.zeros_like(self.query_pos, requires_grad = False)
         self.embedding = nn.Linear(self.height // self.compression * self.width // self.compression * 4, dim_model)
+        self.norm = nn.LayerNorm(dim_model)
+
+        # self.query_pos = nn.Parameter(torch.randn(self.future_frames, self.dim_model), requires_grad = True)
         self.transformer = nn.Transformer(
             d_model=dim_model,
             nhead=num_heads,
@@ -44,12 +50,17 @@ class Transformer(nn.Module):
         )
         self.out = nn.Linear(dim_model, self.height // self.compression  * self.width // self.compression * 4)
         
-    def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
+    def forward(self, src, tgt1, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         
         # Src size must be (batch_size, src sequence length, dim_model)
         # Tgt size must be (batch_size, tgt sequence length, dim_model)
 
         # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
+        N, _, _ = src.shape
+        query_pos = self.query_pos.unsqueeze(0).repeat(N,1,1)
+        init_tgt = self.init_tgt.unsqueeze(0).repeat(N,1,1)
+        tgt = self.norm(init_tgt)
+        tgt = tgt + query_pos
         src = self.embedding(src) * math.sqrt(self.dim_model)
         tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
         src = self.positional_encoder(src)
