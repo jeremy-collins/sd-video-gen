@@ -27,9 +27,9 @@ DIM_MODEL:
 NUM_HEADS: 
  - 8
 NUM_ENCODER_LAYERS: 
- - 6
+ - 4
 NUM_DECODER_LAYERS: 
- - 6
+ - 8
 DROPOUT_P: 
  - 0.1
 
