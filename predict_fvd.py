@@ -60,17 +60,17 @@ if __name__ == "__main__":
 
     elif 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-wallpushups'
         elif args.dataset.endswith('workout'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-workout'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-workout'
         elif args.dataset.endswith('instruments'):
-            ucf_data_dir = 'data/UCF-101/UCF-101-instruments'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101-instruments'
         elif args.dataset == 'ucf':
-            ucf_data_dir = 'data/UCF-101/UCF-101'
+            ucf_data_dir = '../dataset/UCF-101/UCF-101'
         else:
             raise ValueError('Invalid dataset name')
             
-        ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+        ucf_label_dir = '../dataset/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
 
         tfs = transforms.Compose([
                 # scale in [0, 1] of type float
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=9, train=False, transform=tfs, num_workers=config.NUM_WORKERS[0]) # frames_between_clips/frame_rate
             # ***TEST***
 
-        #print('epoch', config.EPOCH_RATIO[0])
+        print('epoch', int(len(test_dataset) * config.EPOCH_RATIO[0]))
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * config.EPOCH_RATIO[0]))#config.EPOCH_RATIO[0]))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, sampler=test_sampler, collate_fn=custom_collate, num_workers=config.NUM_WORKERS[0], pin_memory=True)
 
@@ -240,6 +240,10 @@ if __name__ == "__main__":
                         cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
+
+            if ind % 100 == 1:
+                fvd_score = fvd.compute_fvd(stats_predicted, stats_groundtruth)
+                print('FVD score after batch', ind, ': ', fvd_score)
                     
         fvd_score = fvd.compute_fvd(stats_predicted, stats_groundtruth)
         print('FVD : ', fvd_score)
