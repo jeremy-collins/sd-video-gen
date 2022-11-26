@@ -48,7 +48,7 @@ def splitClassNames(classes):
         x=new_string.split("*")
         x.remove('')
         print(x)
-	x = " ".join(x)
+        x = " ".join(x)
         result.append(x)
 
     return result

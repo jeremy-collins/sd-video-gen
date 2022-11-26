@@ -28,7 +28,7 @@ def parse_config_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--save_best', type=bool, default=False)
-    # parser.add_argument('--folder', type=str, default=None) # data folder
+    parser.add_argument('--folder', type=str, default=None) # data folder for bouncing ball
     parser.add_argument('--config', type=str, required=True) # model/config name
     parser.add_argument('--resume', type=bool, default=False) # resume training from checkpoint
     parser.add_argument('--debug', type=bool, default=False) # turn off wandb logging
