@@ -28,9 +28,11 @@ class Transformer(nn.Module):
 
         self.config, self.args = parse_config_args()
 
+        # TODO: If we want to use 2048 + text_embed_dim, comment line #32 and uncomment line #34
         self.dim_model = dim_model
         self.text_embed_dim = 384
-        self.img_embed_dim = self.dim_model - self.text_embed_dim
+        # self.dim_model = dim_model + self.text_embed_dim
+        self.img_embed_dim = self.dim_model - self.text_embed_dim # ultimately img_embed_dim is equal to config.dim_model
 
         # IMAGE SIZE
         self.height = self.config.FRAME_SIZE
@@ -44,7 +46,7 @@ class Transformer(nn.Module):
 
         # LAYERS
         self.positional_encoder = PositionalEncoding(
-            dim_model=dim_model, dropout_p=dropout_p, max_len=64
+            dim_model=self.dim_model, dropout_p=dropout_p, max_len=64
         )
         # self.embedding = nn.Embedding(num_tokens, dim_model)
         # self.embedding = nn.Linear(self.height // self.compression * self.width // self.compression * 4, dim_model)
@@ -58,13 +60,13 @@ class Transformer(nn.Module):
         self.project_image_embedding = nn.Linear(self.height // self.compression * self.width // self.compression * 4, self.img_embed_dim)
         print("defined image embedding")
         self.transformer = nn.Transformer(
-            d_model=dim_model,
+            d_model=self.dim_model,
             nhead=num_heads,
             num_encoder_layers=num_encoder_layers,
             num_decoder_layers=num_decoder_layers,
             dropout=dropout_p,
         )
-        self.out = nn.Linear(dim_model, self.height // self.compression  * self.width // self.compression * 4)
+        self.out = nn.Linear(self.dim_model, self.height // self.compression  * self.width // self.compression * 4)
         
     def forward(self, src, cls_list, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         
