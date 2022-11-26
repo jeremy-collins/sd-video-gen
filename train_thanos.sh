@@ -1,6 +1,2 @@
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_16heads
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_4enc_8dec
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_16heads
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_16heads
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_16heads
-python trainer_predict.py --dataset ucf --save_best True --config 11_26_ucf_16heads
+python trainer.py --dataset ball --save_best True --config 11_26_bouncing_ball_complex --folder data/complex_large_10_22
+python trainer.py --dataset ucf --save_best True --config 11_26_ucf_16heads
