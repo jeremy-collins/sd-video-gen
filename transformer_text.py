@@ -29,9 +29,9 @@ class Transformer(nn.Module):
         self.config, self.args = parse_config_args()
 
         # TODO: If we want to use 2048 + text_embed_dim, comment line #32 and uncomment line #34
-        self.dim_model = dim_model
+        # self.dim_model = dim_model
         self.text_embed_dim = 384
-        # self.dim_model = dim_model + self.text_embed_dim
+        self.dim_model = dim_model + self.text_embed_dim
         self.img_embed_dim = self.dim_model - self.text_embed_dim # ultimately img_embed_dim is equal to config.dim_model
 
         # IMAGE SIZE

@@ -75,6 +75,8 @@ class Trainer():
         horizontal_gradient_Y = frameY[:, :, :, :, 1:] - frameY[:, :, :, :, :-1]
         horizontal_gradient_loss = torch.abs(torch.abs(horizontal_gradient_X) - torch.abs(horizontal_gradient_Y))
 
+        # TODO: add additional loss along channel dimension
+
         gdloss = torch.sum(torch.pow(vertical_gradient_loss, alpha)) + torch.sum(torch.pow(horizontal_gradient_loss, alpha))
         gdloss = gdloss / (frameX_flattened.numel()) # * 2) # normalizing
         return gdloss
