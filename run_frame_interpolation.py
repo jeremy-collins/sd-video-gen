@@ -30,7 +30,7 @@ for  r, d, f in os.walk(file_path):
         for counter in video_ids:
 
                 for file in f:
-                        if f'{counter}'+'_' in  file:
+                        if file.startswith(f'{counter}' + '_'):
 
                                 dir_name = 'counter_' + f'{counter}'
                                 if not os.path.exists( os.path.join(op_path, dir_name)):
