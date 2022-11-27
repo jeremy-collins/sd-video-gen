@@ -35,7 +35,11 @@ for  r, d, f in os.walk(file_path):
                                 dir_name = 'counter_' + f'{counter}'
                                 if not os.path.exists( os.path.join(op_path, dir_name)):
                                         os.makedirs(os.path.join(op_path,dir_name))
-                                shutil.copy(os.path.join(r,file), os.path.join(op_path,dir_name ))
+                                for s in ['8.png', '9.png', '10.png', '11.png', '12.png']:
+                                        if file.endswith(s):
+                                            shutil.copy(os.path.join(r,file), os.path.join(op_path,dir_name ))
+
+                                
                                 os.system('python3 -m frame_interpolation.eval.interpolator_cli --pattern "{}" --model_path frame_interpolation/pretrained_models/saved_model --times_to_interpolate 2 --output_video'.format(dir_name))
 
 
