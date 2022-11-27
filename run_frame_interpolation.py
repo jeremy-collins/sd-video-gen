@@ -42,7 +42,7 @@ for  r, d, f in os.walk(file_path):
                                             shutil.copy(os.path.join(r,file), os.path.join(op_path,dir_name ))
 
 for dir_name in created_dirs:
-        os.system('python3 -m frame_interpolation.eval.interpolator_cli --pattern "{}" --model_path frame_interpolation/pretrained_models/saved_model --times_to_interpolate 2 --output_video'.format>
+        os.system('python3 -m frame_interpolation.eval.interpolator_cli --pattern "{}" --model_path frame_interpolation/pretrained_models/saved_model --times_to_interpolate 2 --output_video'.format(os.path.join(op_path, dir_name)))
 
 
 
