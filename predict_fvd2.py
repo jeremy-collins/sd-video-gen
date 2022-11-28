@@ -116,11 +116,9 @@ if __name__ == "__main__":
         real_input = None
         fake_input = None
         i3d = load_i3d_pretrained(device)
-        ind = 0
-        for index_list, batch in test_loader:
+        for (ind, (index_list, batch)) in enumerate(test_loader):
             if ind > 2048:
                 break
-            ind += 1
             #print('index_list', index_list)
             inputs = torch.tensor([], device=device)
             preds = torch.tensor([], device=device)
@@ -236,11 +234,12 @@ if __name__ == "__main__":
                         else:
                             fake_curr_inp = torch.cat((fake_curr_inp, curr_frame), 0)
                         #print("fake_curr_inp.shape", fake_curr_inp.shape)
+
+                        pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov2', str(ind) + '_' + str(i) + '.png'), img)
+
+                    else:
+                        pr_val = cv2.imwrite(os.path.join('outputs_real', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov2', str(ind) + '_' + str(i) + '.png'), img)
                         
-                        # add a red border to the predicted frames
-                        # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
-                        # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
-                        #cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
                 fake_curr_inp = fake_curr_inp.unsqueeze(0)
                 if fake_input == None:
                     fake_input = fake_curr_inp
