@@ -4,7 +4,7 @@ LR:
 BATCH_SIZE: 
  - 7
 EPOCHS: 
- - 1000000
+ - 6
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
@@ -19,7 +19,7 @@ STRIDE:
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
  - 3
-FRAME_SIZE: 64
+FRAME_SIZE: 128
 
 # Transformer config
 DIM_MODEL: 
