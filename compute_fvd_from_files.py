@@ -31,16 +31,17 @@ if __name__ == "__main__":
         i3d = load_i3d_pretrained(device)
         #for (ind, (index_list, batch)) in enumerate(test_loader):
         for batch_ind in range(0, 128):
-            image_batch = torch.zeros((16, 16, 128, 128, 3))
+            image_batch = torch.zeros((16, 15, 128, 128, 3))
             curr_batch_start = batch_ind * 16
             for seq_num in range(curr_batch_start, curr_batch_start+16):
-                for frame_num in range(0, 16):
-                    image = Image.open('real_frames/' + str(seq_num) + '_' + str(frame_num) + '.png')
-                    transform = transforms.Compose([
-                        transforms.PILToTensor()
-                    ])
-                    img_tensor = transform(image)
-                    image_batch[(seq_num - curr_batch_start), frame_num, :, :, :] = img_tensor
+                for frame_num in range(0, 15):
+                    if os.path.exists('real_frames/' + str(seq_num) + '_' + str(frame_num) + '.png'):
+                        image = Image.open('real_frames/' + str(seq_num) + '_' + str(frame_num) + '.png')
+                        transform = transforms.Compose([
+                            transforms.PILToTensor()
+                        ])
+                        img_tensor = transform(image).permute(1,2,0)
+                        image_batch[(seq_num - curr_batch_start), frame_num, :, :, :] = img_tensor
 
             print("image_batch", image_batch.shape)
 
@@ -49,15 +50,16 @@ if __name__ == "__main__":
             real_embeddings.append(get_fvd_logits(real, i3d=i3d, device=device))
             print('real_embeddings len', len(real_embeddings))
 
-            pred_image_batch = torch.zeros((16, 16, 128, 128, 3))
+            pred_image_batch = torch.zeros((16, 15, 128, 128, 3))
             for seq_num in range(curr_batch_start, curr_batch_start+16):
-                for frame_num in range(0, 16):
-                    image = Image.open('predicted_images/counter_' + str(seq_num) + '/interpolated_frames/frame_' + str(frame_num).zfill(3) + '.png')
-                    transform = transforms.Compose([
-                        transforms.PILToTensor()
-                    ])
-                    img_tensor = transform(image)
-                    pred_image_batch[(seq_num - curr_batch_start), frame_num, :, :, :] = img_tensor            
+                for frame_num in range(0, 15):
+                    if os.path.exists('predicted_images/counter_' + str(seq_num) + '/interpolated_frames/frame_' + str(frame_num).zfill(3) + '.png'):
+                        image = Image.open('predicted_images/counter_' + str(seq_num) + '/interpolated_frames/frame_' + str(frame_num).zfill(3) + '.png')
+                        transform = transforms.Compose([
+                            transforms.PILToTensor()
+                        ])
+                        img_tensor = transform(image).permute(1,2,0)
+                        pred_image_batch[(seq_num - curr_batch_start), frame_num, :, :, :] = img_tensor            
             
             fake_input = pred_image_batch
             #fake = fake.permute(0, 2, 3, 4, 1).cpu().numpy() # BCTHW -> BTHWC
