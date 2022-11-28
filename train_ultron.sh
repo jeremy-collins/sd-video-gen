@@ -1,1 +1,7 @@
-python trainer.py --dataset ucf --save_best True --config 11_26_ucf_64frame_size --resume True --old_name 11_26_ucf_64frame_size_2_test
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_gdl_final
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_contrastive_final
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_final
+
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_gdl_final
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_contrastive_final
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_mse_final

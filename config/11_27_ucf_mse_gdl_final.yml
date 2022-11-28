@@ -1,0 +1,48 @@
+# General config
+LR: 
+ - 0.00001
+BATCH_SIZE: 
+ - 6
+EPOCHS: 
+ - 6
+EPOCH_RATIO: 
+ - 1 # to sample just a portion of the dataset
+NUM_WORKERS: 
+ - 10
+
+# Video config
+FRAMES_PER_CLIP: 
+ - 5
+FRAMES_TO_PREDICT: 
+ - 5
+STRIDE: 
+ - 1 # number of frames to shift when loading clips. not used for ucf
+FPS: 
+ - 3
+FRAME_SIZE: 128
+
+# Transformer config
+DIM_MODEL: 
+ - 2048
+NUM_HEADS: 
+ - 8
+NUM_ENCODER_LAYERS: 
+ - 4
+NUM_DECODER_LAYERS: 
+ - 8
+DROPOUT_P: 
+ - 0.1
+
+# Loss config
+USE_MSE: 
+ - True
+USE_GDL: 
+ - True
+LAMBDA_GDL: 
+ - 1
+ALPHA: 
+ - 1 # gdl exponent
+USE_CONTRASTIVE: 
+ - False
+LAMBDA_CONTRASTIVE: 
+ - 0.025
