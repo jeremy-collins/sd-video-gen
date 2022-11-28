@@ -8,7 +8,7 @@ EPOCHS:
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 12
+ - 10
 
 # Video config
 FRAMES_PER_CLIP: 
