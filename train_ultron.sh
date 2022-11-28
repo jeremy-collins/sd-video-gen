@@ -1,1 +1,1 @@
-python trainer.py --dataset ucf --save_best True --config 11_26_ucf_64frame_size --resume True --old_name 11_26_ucf_64frame_size_2_test
+python trainer.py --dataset ucf --save_best True --config 11_27_ucf_final

@@ -165,13 +165,14 @@ class Trainer():
             opt.step()
             # scheduler.step()
 
-            mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-            # gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
-            gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
-        
-            mse_loss += mse
-            gdl_loss += gdl
-            contrastive_loss += loss.detach().item() - mse - gdl
+            if config.USE_MSE:
+                mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                mse_loss += mse
+            if config.USE_GDL:
+                gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
+                gdl_loss += gdl
+            if config.USE_CONTRASTIVE:
+                contrastive_loss += loss.detach().item() - mse - gdl
 
             total_loss += loss.detach().item()
 
@@ -229,12 +230,14 @@ class Trainer():
                 # self.check_decoding(pred[0, -1], 'pred')
                 # self.check_decoding(y_expected[0, -1], 'gt')
 
-                mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-                gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
-            
-                mse_loss += mse
-                gdl_loss += gdl
-                contrastive_loss += loss.detach().item() - mse - gdl
+                if config.USE_MSE:
+                    mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                    mse_loss += mse
+                if config.USE_GDL:
+                    gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
+                    gdl_loss += gdl
+                if config.USE_CONTRASTIVE:
+                    contrastive_loss += loss.detach().item() - mse - gdl
 
                 total_loss += loss.detach().item()
 
@@ -441,7 +444,11 @@ def main():
     for epoch in range(1, epochs+1):
         print("-"*25, f"Epoch {epoch}","-"*25)
         train_loss, validation_loss = trainer.fit(model=model, opt=opt,  scheduler=scheduler, loss_fn=loss_fn, train_dataloader=train_loader, val_dataloader=test_loader, frames_to_predict=frames_to_predict)
-        
+    
+        if epoch == 6 or epoch == 10 or epoch == 15:
+            torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '_epoch_' + str(epoch) + '_test.pt')
+            print('model saved as ' + args.config + '_' + str(trainer.index) + '_epoch_' + str(epoch) + '_test.pt')
+
         if args.save_best: # save best model
             if train_loss < best_train_loss:
                 best_train_loss = train_loss
@@ -452,8 +459,8 @@ def main():
                 torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '_test' + '.pt')
                 print('model saved as ' + args.config + '_' + str(trainer.index) +  '_test.pt (best test loss)')
         else: # save last model
-            torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '.pt')
-            print('model saved as ' + args.config + '_' + str(trainer.index) + '.pt')
+            torch.save(model.state_dict(), './checkpoints/' + args.config + '_' + str(trainer.index) + '_test.pt')
+            print('model saved as ' + args.config + '_' + str(trainer.index) + '_test.pt')
 
 if __name__ == '__main__':
     config, args = parse_config_args()
