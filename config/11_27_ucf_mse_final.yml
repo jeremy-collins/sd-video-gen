@@ -2,13 +2,13 @@
 LR: 
  - 0.00001
 BATCH_SIZE: 
- - 4
+ - 6
 EPOCHS: 
  - 6
 EPOCH_RATIO: 
  - 1 # to sample just a portion of the dataset
 NUM_WORKERS: 
- - 0
+ - 12
 
 # Video config
 FRAMES_PER_CLIP: 
