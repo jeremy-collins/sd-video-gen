@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from identity import Identity
 from bouncing_ball_loader import BouncingBall
+from moving_mnist_loader import MovingMNIST
 from sd_utils import SDUtils
 import PIL
 import cv2
@@ -55,7 +56,9 @@ if __name__ == "__main__":
     if args.dataset == 'ball':
         test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
-
+    elif 'mnist' in args.dataset:
+        test_dataset = MovingMNIST(num_frames=10, stride=1, path='mnist_test_seq.npy', stage='raw', shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
     elif 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
             ucf_data_dir = 'data/UCF-101/UCF-101-wallpushups'
@@ -210,6 +213,8 @@ if __name__ == "__main__":
                     # cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     # cv2.imshow('frame', img)
                     # cv2.waitKey(0)
+                    if not os.path.exists(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode))):
+                        os.makedirs(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode)))
                     pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(ind) + '_' + str(i) + '.png'), img)
 
             if args.show:

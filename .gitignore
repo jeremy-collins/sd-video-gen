@@ -8,3 +8,5 @@ data/
 wandb/
 __pycache__/
 BouncingBall_dataset_generator.ipynb
+*.npy
+*.pyc

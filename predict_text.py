@@ -11,6 +11,8 @@ import argparse
 from torchvision.datasets import UCF101
 import torchvision.transforms as transforms
 from config import parse_config_args
+from fvd_2 import get_fvd_logits, frechet_distance, load_i3d_pretrained, all_gather
+from torch.utils.data import DataLoader, RandomSampler
 
 def splitClassNames(classes):
     result = []
@@ -79,6 +81,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '.pt'))
     model.eval()
     model = model.to(device)
+    i3d = load_i3d_pretrained(device)
 
     idx_to_class = None
 
@@ -134,14 +137,22 @@ if __name__ == "__main__":
 
         else:
             # ***TEST***
-            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=5, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
+            test_dataset = UCF101(ucf_data_dir, ucf_label_dir, frames_per_clip=16, train=False, transform=tfs, num_workers=12) # frames_between_clips/frame_rate
             # ***TEST***
 
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
+        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=2048)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, sampler=test_sampler, collate_fn=custom_collate, num_workers=12, pin_memory=True)
         
     with torch.no_grad():
-        for index_list, batch in test_loader:
-            print('index_list', index_list)
+        real_embeddings = []
+        fake_embeddings = []
+        real_input = None
+        fake_input = None
+        i3d = load_i3d_pretrained(device)
+
+        for (ind, (index_list, batch)) in enumerate(test_loader):
+            if ind > 2048:
+                break
             cls_list = None
             if idx_to_class is not None:
                 # print(idx_to_class.keys())
@@ -149,6 +160,18 @@ if __name__ == "__main__":
             inputs = torch.tensor([], device=device)
             preds = torch.tensor([], device=device)
             is_pred = []
+
+            real = batch #.permute(0, 2, 3, 4, 1).cpu().numpy() # BCTHW -> BTHWC
+            if(real_input == None):
+                real_input = real
+            else:
+                real_input = torch.cat((real_input, real), 0)
+            #print("real_input.shape", real_input.shape)
+            if(real_input.shape[0] >= 16):
+                real = (real_input * 255).numpy().astype('uint8')
+                real_embeddings.append(get_fvd_logits(real, i3d=i3d, device=device))
+                real_input = None
+                print('real_embeddings len', len(real_embeddings))
 
             new_batch = sd_utils.encode_batch(batch, use_sos=True)
             new_batch = torch.tensor(new_batch).to(device)
@@ -167,7 +190,7 @@ if __name__ == "__main__":
                         continue # SOS token
                 else:
                     inputs = torch.cat((inputs, input.unsqueeze(0).unsqueeze(0)), dim=1)
-                    print('inputs shape: ', inputs.shape)
+                    #print('inputs shape: ', inputs.shape)
 
             for iteration in range(args.pred_frames):
                 pred = predict(model, X, cls_list)
@@ -215,18 +238,18 @@ if __name__ == "__main__":
 
                 pred = torch.tensor(pred, dtype=torch.float32, device=device)
                 preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
-                print('preds shape: ', pred.shape)
+                #print('preds shape: ', pred.shape)
 
                 
  
                 all_latents = torch.cat([inputs[:,:-1], preds], dim=1) # remove last input frame and add preds
                 is_pred = [False] * (inputs.shape[1] - 1) + [True] * preds.shape[1]
-                print('all_latents shape: ', all_latents.shape)
+                #print('all_latents shape: ', all_latents.shape)
                 X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
-                print('X after modifying: ', X.shape)
+                #print('X after modifying: ', X.shape)
 
                 
-
+            fake_curr_inp = None
             if args.save_output:
                 frame_indices = index_list[0]
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -236,17 +259,31 @@ if __name__ == "__main__":
                     img = np.array(img[0])
                     
                     if is_pred[i]:
-                        pass
-                        # add a red border to the predicted frames
-                        # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
-                        # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
-                        # cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
-                    # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
-                    # input_img[0].save(img_path)
-                    # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
-                    # cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                    # cv2.imshow('frame', img)
-                    # cv2.waitKey(0)
+                        #print('img', img.shape)
+                        curr_frame = torch.from_numpy(img).unsqueeze(0)
+                        if(fake_curr_inp == None):
+                            fake_curr_inp = curr_frame
+                        else:
+                            fake_curr_inp = torch.cat((fake_curr_inp, curr_frame), 0)
+                        #print("fake_curr_inp.shape", fake_curr_inp.shape)
+                        pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov2', str(ind) + '_' + str(i) + '.png'), img)
+
+                    else:
+                        pr_val = cv2.imwrite(os.path.join('outputs_real', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov2', str(ind) + '_' + str(i) + '.png'), img)
+
+                fake_curr_inp = fake_curr_inp.unsqueeze(0)
+                if fake_input == None:
+                    fake_input = fake_curr_inp
+                else:
+                    fake_input= torch.cat((fake_input, fake_curr_inp), 0)
+                #print("fake_input.shape", fake_input.shape)
+                if fake_input.shape[0] >= 16:
+                    #fake = torch.from_numpy(img)
+                    #fake = fake.permute(0, 2, 3, 4, 1).cpu().numpy() # BCTHW -> BTHWC
+                    fake = (fake_input * 255).numpy().astype('uint8')
+                    fake_embeddings.append(get_fvd_logits(fake, i3d=i3d, device=device))
+                    fake_input = None
+                    print('fake_embeddings len', len(fake_embeddings))
 
             if args.show:
                 for i, latent in enumerate(all_latents.squeeze(0)):
@@ -265,7 +302,14 @@ if __name__ == "__main__":
                         cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
+        fake_embeddings = torch.cat(fake_embeddings)
+        real_embeddings = torch.cat(real_embeddings)
 
+        print('fake_embeddings shape', fake_embeddings.shape)
+        print('real_embeddings shape', real_embeddings.shape)
+
+        fvd = frechet_distance(fake_embeddings.clone(), real_embeddings)
+        print("FVD: ", fvd)
 
     #     # counting number of files in ./checkpoints
     #     folder_index = len(os.listdir('./images'))   
