@@ -1,3 +1,7 @@
+outputs_pred/
+*.zip
+*.rar
+images/*
 checkpoints/
 data/
 2D-bouncing/
