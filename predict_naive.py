@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from transformer import Transformer
+from identity import Identity
 from bouncing_ball_loader import BouncingBall
 from sd_utils import SDUtils
 import PIL
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     sd_utils = SDUtils()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # TODO: make config make sense
-    model = Transformer(num_tokens=0, dim_model=config.DIM_MODEL[0], num_heads=config.NUM_HEADS[0], num_encoder_layers=config.NUM_ENCODER_LAYERS[0], num_decoder_layers=config.NUM_DECODER_LAYERS[0], dropout_p=config.DROPOUT_P[0]) 
-    model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '.pt'))
+    model = Identity() 
+    # model.load_state_dict(torch.load('./checkpoints/' + str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '.pt'))
     model.eval()
     model = model.to(device)
 
