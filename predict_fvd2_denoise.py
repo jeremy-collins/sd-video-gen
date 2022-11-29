@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from transformer import Transformer
+# from transformer import Transformer
+from transformer_text import Transformer
 from bouncing_ball_loader import BouncingBall
 from sd_utils import SDUtils
 import PIL
@@ -198,7 +199,7 @@ if __name__ == "__main__":
                 if args.denoise:
                     #print('denoising predicted frame...')
                     #print('pred.shape:', pred.shape)
-                    uncond_text_embeddings = sd_utils.encode_text([idx_to_class[index_list[0]]])
+                    uncond_text_embeddings = sd_utils.encode_text([idx_to_class[index_list[0].item()]])
                     noisy_pred = pred.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8)) # unflattening pred latent
                     #print('denoise_pred.shape:', noisy_pred.shape)
 
