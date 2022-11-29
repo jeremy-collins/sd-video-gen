@@ -14,7 +14,7 @@ from config import parse_config_args
 from fvd_2 import get_fvd_logits, frechet_distance, load_i3d_pretrained, all_gather
 from torch.utils.data import DataLoader, RandomSampler
 
-def predict(model, input_sequence):
+def predict(model, input_sequence, cls_list):
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -24,7 +24,7 @@ def predict(model, input_sequence):
         # Get target mask
         tgt_mask = model.get_tgt_mask(y_input.size(1)).to(device)
         
-        pred = model(input_sequence, y_input, tgt_mask) # (batch_size, seq_len, dim_model)
+        pred = model(input_sequence, cls_list, y_input, tgt_mask) # (batch_size, seq_len, dim_model)
         
         # Permute pred to have batch size first again
         pred = pred.permute(1, 0, 2)
@@ -82,6 +82,7 @@ if __name__ == "__main__":
     model.eval()
     model = model.to(device)
     i3d = load_i3d_pretrained(device)
+    idx_to_class = None
 
     if args.dataset == 'ball':
         test_dataset = BouncingBall(num_frames=5, stride=1, dir=args.folder, stage='test', shuffle=True)
@@ -101,6 +102,7 @@ if __name__ == "__main__":
 
         classes, idx_to_class = find_classes(ucf_data_dir)
         ucf_label_dir = 'data/UCF101TrainTestSplits-RecognitionTask/ucfTrainTestlist'
+        classes, idx_to_class = find_classes(ucf_data_dir)
 
         tfs = transforms.Compose([
                 # scale in [0, 1] of type float
@@ -154,6 +156,11 @@ if __name__ == "__main__":
             preds = torch.tensor([], device=device)
             is_pred = []
 
+            cls_list = None
+            if idx_to_class is not None:
+                # print(idx_to_class.keys())
+                cls_list =[idx_to_class[idx_] for idx_ in index_list.tolist()]
+
             #print("batch", batch.shape)
             #real = batch.reshape()
 
@@ -190,7 +197,7 @@ if __name__ == "__main__":
             #print('denoising sequence ', ind)
 
             for iteration in range(args.pred_frames):
-                pred = predict(model, X)
+                pred = predict(model, X, cls_list)
                 if args.denoise:
                     #print('denoising predicted frame...')
                     #print('pred.shape:', pred.shape)
