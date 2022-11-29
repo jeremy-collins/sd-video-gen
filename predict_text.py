@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from transformer import Transformer
 from transformer_text import Transformer
 from bouncing_ball_loader import BouncingBall
 from sd_utils import SDUtils
