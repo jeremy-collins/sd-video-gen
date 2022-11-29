@@ -274,10 +274,10 @@ if __name__ == "__main__":
                             fake_curr_inp = torch.cat((fake_curr_inp, curr_frame), 0)
                         #print("fake_curr_inp.shape", fake_curr_inp.shape)
 
-                        pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov4', str(ind) + '_' + str(i), 'den' + '.png'), img)
+                        pr_val = cv2.imwrite(os.path.join('outputs_pred', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(ind) + '_' + str(i), 'den' + '.png'), img)
 
                     else:
-                        pr_val = cv2.imwrite(os.path.join('outputs_real', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode) + '_25Nov4', str(ind) + '_' + str(i) + '.png'), img)
+                        pr_val = cv2.imwrite(os.path.join('outputs_real', str(args.config) + '_' + str(args.index)+ '_' + str(args.mode), str(ind) + '_' + str(i) + '.png'), img)
                         
                 fake_curr_inp = fake_curr_inp.unsqueeze(0)
                 if fake_input == None:
