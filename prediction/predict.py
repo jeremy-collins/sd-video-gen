@@ -109,8 +109,8 @@ if __name__ == "__main__":
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
 
     elif args.dataset == 'kitti':
-        test_dataset = Kitti(dir=args.folder, stage='train', shuffle=True)
-        # test_dataset = Kitti(dir=args.folder, stage='test', shuffle=True)
+        # test_dataset = Kitti(dir=args.folder, stage='train', shuffle=True)
+        test_dataset = Kitti(dir=args.folder, stage='test', shuffle=True)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=12, pin_memory=True)
 
 
