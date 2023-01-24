@@ -1,8 +1,8 @@
 # General config
 LR: 
- - 0.00001
+ - 0.0000005
 BATCH_SIZE: 
- - 6
+ - 4
 EPOCHS: 
  - 1000000
 EPOCH_RATIO: 
@@ -35,14 +35,16 @@ DROPOUT_P:
 
 # Loss config
 USE_MSE: 
+ - False
+USE_L1: 
  - True
 USE_GDL: 
- - True
+ - False
 LAMBDA_GDL: 
  - 1
 ALPHA: 
  - 1 # gdl exponent
 USE_CONTRASTIVE: 
- - True
+ - False
 LAMBDA_CONTRASTIVE: 
  - 0.025

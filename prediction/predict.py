@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from models.transformer import Transformer
 from loaders.bouncing_ball_loader import BouncingBall
+from loaders.kitti_loader import Kitti
 from utils.sd_utils import SDUtils
 import PIL
 import cv2
@@ -106,7 +107,13 @@ if __name__ == "__main__":
             # ***TEST***
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
-        
+
+    elif args.dataset == 'kitti':
+        test_dataset = Kitti(dir=args.folder, stage='train', shuffle=True)
+        # test_dataset = Kitti(dir=args.folder, stage='test', shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=12, pin_memory=True)
+
+
     with torch.no_grad():
         for index_list, batch in test_loader:
             print('index_list', index_list)
@@ -193,6 +200,11 @@ if __name__ == "__main__":
 
             if args.save_output:
                 frame_indices = index_list[0]
+
+                folder_index = len(os.listdir('outputs'))  
+                if not folder_index in os.listdir('outputs'):
+                    os.makedirs(os.path.join('outputs', str(folder_index)))
+
                 for i, latent in enumerate(all_latents.squeeze(0)):
                     # latent = latent.reshape((1, 4, 8, 8))
                     latent = latent.reshape((1, 4, config.FRAME_SIZE // 8, config.FRAME_SIZE // 8))
@@ -201,9 +213,14 @@ if __name__ == "__main__":
                     
                     if is_pred[i]:
                         # add a red border to the predicted frames
-                        # img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
-                        # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
-                        cv2.imwrite(os.path.join(args.folder, 'test_results', str(frame_indices[i]) + '.png'), img)
+                        img = cv2.copyMakeBorder(img, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 255])
+
+                    
+
+                    # save to args.folder/results/<4 digit folder ID + 3 digit file/frame ID>.png
+                    img_path = os.path.join('outputs', str(folder_index), str(i) + '.png')
+                    print('saving to: ', img_path)
+                    cv2.imwrite(img_path, img)
                     # img_path = os.path.join('./images', str(folder_index), str(index_list[idx - 1].item()) + '_gt.png')
                     # input_img[0].save(img_path)
                     # cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)

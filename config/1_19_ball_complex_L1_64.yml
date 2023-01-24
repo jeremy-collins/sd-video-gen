@@ -1,8 +1,8 @@
 # General config
 LR: 
- - 0.00001
+ - 0.0000005
 BATCH_SIZE: 
- - 6
+ - 8
 EPOCHS: 
  - 1000000
 EPOCH_RATIO: 
@@ -19,7 +19,7 @@ STRIDE:
  - 1 # number of frames to shift when loading clips. not used for ucf
 FPS: 
  - 3
-FRAME_SIZE: 128
+FRAME_SIZE: 64
 
 # Transformer config
 DIM_MODEL: 
@@ -35,14 +35,16 @@ DROPOUT_P:
 
 # Loss config
 USE_MSE: 
+ - False
+USE_L1: 
  - True
 USE_GDL: 
- - True
+ - False
 LAMBDA_GDL: 
  - 1
 ALPHA: 
  - 1 # gdl exponent
 USE_CONTRASTIVE: 
- - True
+ - False
 LAMBDA_CONTRASTIVE: 
  - 0.025

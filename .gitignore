@@ -7,6 +7,9 @@ data/
 2D-bouncing/
 wandb/
 __pycache__/
+outputs/
+outputs_pred/
+outputs_real/
 BouncingBall_dataset_generator.ipynb
 *.npy
 *.pyc

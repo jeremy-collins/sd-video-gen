@@ -2,7 +2,7 @@
 LR: 
  - 0.00001
 BATCH_SIZE: 
- - 6
+ - 8
 EPOCHS: 
  - 1000000
 EPOCH_RATIO: 

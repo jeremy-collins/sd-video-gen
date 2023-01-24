@@ -1,8 +1,8 @@
 # General config
 LR: 
- - 0.00001
+ - 0.000001
 BATCH_SIZE: 
- - 6
+ - 4
 EPOCHS: 
  - 1000000
 EPOCH_RATIO: 
@@ -39,10 +39,10 @@ USE_MSE:
 USE_GDL: 
  - True
 LAMBDA_GDL: 
- - 1
+ - 1.5
 ALPHA: 
  - 1 # gdl exponent
 USE_CONTRASTIVE: 
  - True
 LAMBDA_CONTRASTIVE: 
- - 0.025
+ - 0.1

@@ -8,6 +8,7 @@ from models.transformer_future import Transformer
 import torchvision.transforms as transforms
 from torchvision.datasets import UCF101
 from loaders.bouncing_ball_loader import BouncingBall
+from loaders.kitti_loader import Kitti
 import argparse
 import os
 from tqdm import tqdm
@@ -82,27 +83,25 @@ class Trainer():
     # def contrastive_loss(num_frames, batch_size, feat_height, feat_width, temperature):
     #     return BiPatchNCE(num_frames, batch_size, feat_height, feat_width, temperature)
     
-    def criterion(self, use_mse=True, use_gdl=True, lambda_gdl=1, alpha=2, use_contrastive=True, temperature=0.07, lambda_contrastive=0.1):
-        if use_mse and not use_gdl:
-            return nn.MSELoss()
-        elif use_gdl and not use_mse:
-            return self.gradient_difference_loss
-        elif use_mse and use_gdl and not use_contrastive:
-            # return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
-            return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x, y, alpha)
-        elif use_mse and use_gdl and use_contrastive:
+    def criterion(self, use_mse=True, use_L1=False, use_gdl=True, lambda_gdl=1, alpha=2, use_contrastive=True, temperature=0.07, lambda_contrastive=0.1):
+        # if use_mse and not use_gdl:
+        #     return nn.MSELoss()
+        # elif use_gdl and not use_mse:
+        #     return self.gradient_difference_loss
+        # elif use_mse and use_gdl and not use_contrastive:
+        #     # return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha)
+        #     return lambda x, y: nn.MSELoss()(x, y) + lambda_gdl * self.gradient_difference_loss(x, y, alpha)
+        # elif use_mse and use_gdl and use_contrastive:
+        if not (use_mse and use_L1):
             # (tgt sequence length, batch size, input shape)
             frames_to_predict = self.config.FRAMES_TO_PREDICT[0] # TODO: make this work for multiple frames to predict in config
             batch_size = self.config.BATCH_SIZE[0] # TODO: make this work for multiple batch sizes in config
             feat_height = self.config.FRAME_SIZE // 8
             feat_width = self.config.FRAME_SIZE // 8
-            # bpnce = BiPatchNCE(N=batch_size, T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)
-        #     return lambda x, y: nn.MSELoss()(x, y) \
-        #             + lambda_gdl * self.gradient_difference_loss(x[-1], y[-1], alpha) \
-        #             + lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
-            return lambda x, y: nn.MSELoss()(x, y) \
-                    + lambda_gdl * self.gradient_difference_loss(x, y, alpha) \
-                    + lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
+            return lambda x, y: use_mse * nn.MSELoss()(x, y) \
+                    + use_L1 * nn.L1Loss()(x, y) \
+                    + use_gdl * lambda_gdl * self.gradient_difference_loss(x, y, alpha) \
+                    + use_contrastive * lambda_contrastive * BiPatchNCE(N=int(x.numel() / (frames_to_predict * 4 * feat_height * feat_width)), T=frames_to_predict, h=feat_height, w=feat_width, temperature=temperature).to(self.device)(x.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)), y.permute(1,0,2).reshape((-1, frames_to_predict, 4, feat_height, feat_width)))
         else:
             print('Invalid loss function combination')
             return None
@@ -112,6 +111,7 @@ class Trainer():
         model.train()
         total_loss = 0
         mse_loss = 0
+        L1_loss = 0
         gdl_loss = 0
         contrastive_loss = 0
             
@@ -142,7 +142,9 @@ class Trainer():
             # pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
             # repeating model.learned_tgt along the batch dimension
             learned_tgt = model.learned_tgt.repeat(y_input.shape[0], 1, 1).to(self.device)
-            pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+            # pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+            pred = model(y_input, y_input, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+            
             # output is (tgt sequence length, batch size, input shape)
             pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
 
@@ -171,13 +173,17 @@ class Trainer():
             opt.step()
             # scheduler.step()
 
-            mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-            # gdl = self.gradient_difference_loss(pred[-1], y_expected[-1]).detach().item()
-            gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
-        
-            mse_loss += mse
-            gdl_loss += gdl
-            contrastive_loss += loss.detach().item() - mse - gdl
+            if config.USE_MSE:
+                mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                mse_loss += mse
+            if config.USE_L1:
+                L1 = torch.nn.L1Loss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                L1_loss += L1
+            if config.USE_GDL:
+                gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
+                gdl_loss += gdl
+            if config.USE_CONTRASTIVE:
+                contrastive_loss += loss.detach().item() - mse - gdl # TODO: make this more robust
 
             total_loss += loss.detach().item()
 
@@ -185,6 +191,7 @@ class Trainer():
         wandb.log({'train_loss': train_loss})
 
         wandb.log({'mse_train': mse_loss / len(dataloader)})
+        wandb.log({'L1_train': L1_loss / len(dataloader)})
         wandb.log({'gdl_train': gdl_loss / len(dataloader)})
         wandb.log({'contrastive_train': contrastive_loss / len(dataloader)})
             
@@ -194,6 +201,7 @@ class Trainer():
         model.eval()
         total_loss = 0
         mse_loss = 0
+        L1_loss = 0
         gdl_loss = 0
         contrastive_loss = 0
 
@@ -225,7 +233,8 @@ class Trainer():
                 # pred = model(y_input, y_expected, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
                 # repeating model.learned_tgt along the batch dimension
                 learned_tgt = model.learned_tgt.repeat(y_input.shape[0], 1, 1)
-                pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+                # pred = model(y_input, learned_tgt, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
+                pred = model(y_input, y_input, tgt_mask) # (sos, frame_1, ... frame_(frames_per_clip)) --> (frame_(frames_per_clip + 1), frame_(frames_per_clip + 2), ... frame_(frames_per_clip + frames_to_predict))
                 # output is (tgt sequence length, batch size, input shape)
                 pred = pred.permute(1, 0, 2) # (batch size, tgt sequence length, input shape)
 
@@ -247,12 +256,17 @@ class Trainer():
                 # for i in range(0, frames_to_predict):
                 #     self.check_decoding(y_expected[-1, i], 'gt')
 
-                mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
-                gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
-            
-                mse_loss += mse
-                gdl_loss += gdl
-                contrastive_loss += loss.detach().item() - mse - gdl
+                if config.USE_MSE:
+                    mse = torch.nn.MSELoss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                    mse_loss += mse
+                if config.USE_L1:
+                    L1 = torch.nn.L1Loss()(pred[-frames_to_predict:], y_expected[-frames_to_predict:]).detach().item()
+                    L1_loss += L1
+                if config.USE_GDL:
+                    gdl = self.gradient_difference_loss(pred, y_expected).detach().item()
+                    gdl_loss += gdl
+                if config.USE_CONTRASTIVE:
+                    contrastive_loss += loss.detach().item() - mse - gdl
 
                 total_loss += loss.detach().item()
 
@@ -260,6 +274,7 @@ class Trainer():
         wandb.log({'val_loss': val_loss})
         
         wandb.log({'mse_val': mse_loss / len(dataloader)})
+        wandb.log({'L1_val': L1_loss / len(dataloader)})
         wandb.log({'gdl_val': gdl_loss / len(dataloader)})
         wandb.log({'contrastive_val': contrastive_loss / len(dataloader)})
             
@@ -351,6 +366,7 @@ def main():
     dropout_p = wandb.config.dropout_p
 
     use_mse = wandb.config.use_mse
+    use_L1 = wandb.config.use_L1
     use_gdl = wandb.config.use_gdl
     lambda_gdl = wandb.config.lambda_gdl
     alpha = wandb.config.alpha
@@ -372,7 +388,7 @@ def main():
     # scheduler = get_linear_schedule_with_warmup(opt, num_warmup_steps=15, num_training_steps=epochs*len(train_loader))
     scheduler = None
     # loss_fn = nn.MSELoss()
-    loss_fn = trainer.criterion(use_mse=use_mse, use_gdl=use_gdl, lambda_gdl=lambda_gdl, alpha=alpha, use_contrastive=use_contrastive, lambda_contrastive=lambda_contrastive)  # , temperature)
+    loss_fn = trainer.criterion(use_mse=use_mse, use_L1=use_L1, use_gdl=use_gdl, lambda_gdl=lambda_gdl, alpha=alpha, use_contrastive=use_contrastive, lambda_contrastive=lambda_contrastive)  # , temperature)
 
     if 'ucf' in args.dataset:
         if args.dataset.endswith('wallpushups'):
@@ -437,6 +453,14 @@ def main():
         test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers, pin_memory=True)
         
+    elif args.dataset == 'kitti':
+        train_dataset = Kitti(num_frames=(frames_per_clip + frames_to_predict), stride=1, dir=args.folder, stage='train', shuffle=True)
+        train_sampler = RandomSampler(train_dataset, replacement=False, num_samples=int(len(train_dataset) * epoch_ratio))
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=train_sampler, num_workers=num_workers, pin_memory=True)
+        
+        test_dataset = Kitti(num_frames=(frames_per_clip + frames_to_predict), stride=1, dir=args.folder, stage='test', shuffle=True)
+        test_sampler = RandomSampler(test_dataset, replacement=False, num_samples=int(len(test_dataset) * epoch_ratio))
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, sampler=test_sampler, num_workers=num_workers, pin_memory=True)
 
     # print("TEST LOADER")
     # # print(test_loader)
@@ -530,6 +554,9 @@ if __name__ == '__main__':
         },
         'use_mse': {
             'values': config.USE_MSE
+        },
+        'use_L1': {
+            'values': config.USE_L1
         },
         'use_gdl': {
             'values': config.USE_GDL

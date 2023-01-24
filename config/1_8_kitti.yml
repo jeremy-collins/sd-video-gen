@@ -36,6 +36,8 @@ DROPOUT_P:
 # Loss config
 USE_MSE: 
  - True
+USE_L1: 
+ - False
 USE_GDL: 
  - True
 LAMBDA_GDL: 

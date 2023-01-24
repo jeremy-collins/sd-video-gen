@@ -44,7 +44,7 @@ class Transformer(nn.Module):
         )
         self.out = nn.Linear(dim_model, self.height // self.compression  * self.width // self.compression * 4)
         self.learned_tgt = torch.randn((1, self.config.FRAMES_TO_PREDICT[0], self.config.FRAME_SIZE ** 2 // 64 * 4), dtype=torch.float32)
-        self.learned_tgt = nn.Parameter(self.learned_tgt)
+        self.learned_tgt = nn.Parameter(self.learned_tgt, requires_grad=True)
         
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         # Src size must be (batch_size, src sequence length, dim_model)

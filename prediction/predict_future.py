@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from models.transformer import Transformer
+from models.transformer_future import Transformer
 from loaders.bouncing_ball_loader import BouncingBall
+from loaders.kitti_loader import Kitti
 from utils.sd_utils import SDUtils
 import PIL
 import cv2
@@ -109,6 +110,18 @@ if __name__ == "__main__":
             # ***TEST***
 
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=custom_collate, num_workers=12, pin_memory=True)
+
+    elif 'kitti' in args.dataset:
+        if args.mode == 'train':
+            # ***TRAIN***
+            test_dataset = Kitti(num_frames=10, stride=1, dir=args.folder, stage='train', shuffle=True)
+            # ***TRAIN***
+        else:
+            # ***TEST***
+            test_dataset = Kitti(num_frames=10, stride=1, dir=args.folder, stage='test', shuffle=True)
+            # ***TEST***
+            
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=12, pin_memory=True)
         
     with torch.no_grad():
         for index_list, batch in test_loader:
@@ -117,7 +130,7 @@ if __name__ == "__main__":
             preds = torch.tensor([], device=device)
             is_pred = []
 
-            new_batch = sd_utils.encode_batch(batch, use_sos=True)
+            new_batch = sd_utils.encode_batch(batch, use_sos=False)
             new_batch = torch.tensor(new_batch).to(device)
 
             # X = new_batch
@@ -140,7 +153,7 @@ if __name__ == "__main__":
 
             # for iteration in range(args.pred_frames):
             # pred = predict(model, y_input)
-            pred = model(y_input, y_expected, tgt_mask=None)
+            pred = model(y_input, y_input, tgt_mask=None)
             pred = pred.permute(1, 0, 2)
 
             print('pred shape: ', pred.shape)
@@ -188,16 +201,15 @@ if __name__ == "__main__":
 
             # pred = torch.tensor(pred, dtype=torch.float32, device=device)
             # preds = torch.cat((preds, pred.unsqueeze(0).unsqueeze(0)), dim=1)
+            inputs = y_input
             preds = pred
             print('preds shape: ', preds.shape)
 
             all_latents = torch.cat([inputs, preds], dim=1) # remove last input frame and add preds
             is_pred = [False] * inputs.shape[1] + [True] * preds.shape[1]
             print('all_latents shape: ', all_latents.shape)
-            X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
-            print('X after modifying: ', X.shape)
-
-                
+            # X = all_latents[:, -5:] # the next input is the last 5 frames of the concatenated inputs and preds
+            # print('X after modifying: ', X.shape)
 
             if args.save_output:
                 frame_indices = index_list[0]
@@ -236,7 +248,6 @@ if __name__ == "__main__":
                         cv2.setWindowProperty('frame', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     cv2.imshow('frame', img)
                     cv2.waitKey(0)
-
 
     #     # counting number of files in ./checkpoints
     #     folder_index = len(os.listdir('./images'))   
