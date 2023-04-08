@@ -1,7 +1,7 @@
 # Video Generation using Stable Diffusion
 
-![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_8.gif
-![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_6.gif
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_8.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_6.gif)
 
 ## Setup
 - Clone the repository with the command `git clone https://github.com/jeremy-collins/sd-video-gen.git`
