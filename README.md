@@ -1,4 +1,4 @@
-# sd-video-gen
+# Video Generation using Stable Diffusion
 
 ## Setup
 - Clone the repository with the command `git clone https://github.com/jeremy-collins/sd-video-gen.git`
