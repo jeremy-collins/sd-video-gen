@@ -6,7 +6,8 @@
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_5.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_6.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_7.gif)
-![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_8.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_8.gif) <br>
+
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_0.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_1.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_2.gif)
