@@ -1,7 +1,20 @@
 # Video Generation using Stable Diffusion
-
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_1.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_2.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_3.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_4.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_5.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_6.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_7.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/ball_8.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_0.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_1.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_2.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_3.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_4.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_5.gif)
 ![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_6.gif)
+![generated video](https://github.com/jeremy-collins/sd-video-gen/blob/b5842d92f4189e4765394614808e9c4487bd1003/gifs/kitti_7.gif)
 
 ## Setup
 - Clone the repository with the command `git clone https://github.com/jeremy-collins/sd-video-gen.git`
