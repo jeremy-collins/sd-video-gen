@@ -22,11 +22,11 @@
 - Install Miniconda [here](https://docs.conda.io/en/latest/miniconda.html) if you haven't done so already.
 - Install the dependencies: `conda env create --name ls_project --file environment.yml`
 - Create relevant directories: `mkdir data` `mkdir checkpoints`
-- Download model checkpoints [here](https://gtvault-my.sharepoint.com/:f:/g/personal/sganesh68_gatech_edu/Esz3KxV2S5RHnlD1hizh8X4B7RuEE3CI49nyavdfzPpgTA?e=rYPomk) and place them in the checkpoints folder
+- Download model checkpoints [here](https://1drv.ms/f/s!AjebifpxoPl5hOI9yIMYXsfcMPyhUw?e=yJpux1) and place them in the checkpoints folder
 
 ## Datasets
-- To download one of the bouncing ball datasets, choose a zip file from [here](https://gtvault-my.sharepoint.com/:f:/g/personal/sganesh68_gatech_edu/ElJN29JY6d9PpxFIqu1IY5IB9nUG4-baHhX8_m6dBW58_w?e=CoByo5)
-- Download the original UCF-101 dataset [here](https://www.crcv.ucf.edu/data/UCF101/UCF101.rar), or download the formatted UCF-101 dataset from [here](https://google.com)
+- To download one of the bouncing ball datasets, choose a zip file from [here](https://1drv.ms/f/s!AjebifpxoPl5hOI-NIz5Cwe5txUGuw?e=pVUQQr)
+- Download the UCF-101 dataset [here](https://www.crcv.ucf.edu/data/UCF101/UCF101.rar)
   - You will need to `pip install av` to load the UCF dataset.
 - Unzip chosen datasets and place them in the data folder.
 
@@ -42,7 +42,7 @@
 - Optional args:
   - `--folder <data folder>` to specify a data folder. Must contain train and test subfolders.
   - `--show True` to view ground truth and predicted video frames.
-  - `--fullscreen True` to view the frames as fullscreen images .
+  - `--fullscreen True` to view the frames as fullscreen images.
   - `--mode <Train/Test>` to evaluate on the corresponding partition of the dataset.
   - `--denoise True` to denoise the generated frames using the pre-trained Stable Diffusion U-Net.
   - `--denoise_start_step <int between 0 and 50>` to control how much the generated frames are denoised. 0 = image from scratch, 50 = no denoising
